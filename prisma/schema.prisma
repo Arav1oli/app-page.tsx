@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // LOCAL: SQLite — swap to "postgresql" for production (Neon, Supabase, etc.)
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String     @id @default(cuid())
+  name       String
+  email      String     @unique
+  password   String
+  role       String     @default("agent") // "admin" | "agent"
+  initials   String     @default("")
+  createdAt  DateTime   @default(now())
+
+  leads      Lead[]     @relation("LeadOwner")
+  activities Activity[]
+}
+
+model Lead {
+  id             String    @id @default(cuid())
+
+  // Pipeline status (Monday board columns)
+  status         String    @default("new")
+  // new | contacted | qualified | proposal | won | lost
+
+  priority       String    @default("medium")
+  // low | medium | high
+
+  // Core contact info
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  mobile         String?
+
+  // Company
+  company        String?
+  jobTitle       String?
+  website        String?
+
+  // Lead metadata
+  leadSource     String?
+  // referral | website | cold_call | social | event | other
+
+  notes          String?
+  budget         String?
+  vesselInterest String?
+
+  // Address
+  address        String?
+  city           String?
+  country        String?
+
+  // Social
+  linkedin       String?
+
+  // Dates
+  lastContactedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  ownerId        String?
+  owner          User?     @relation("LeadOwner", fields: [ownerId], references: [id])
+  activities     Activity[]
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String   // note | call | email | meeting | task
+  content   String
+  createdAt DateTime @default(now())
+
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+}
