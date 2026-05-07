@@ -174,8 +174,10 @@
 <!-- HERO: replace marex-logo.png and marex-440-photo.jpg in this folder to swap in real brand assets -->
 <section class="hero">
   <div class="brand">
-    <!-- Drop a real logo at /tools/marex-logo.png — until then this CSS wordmark stands in -->
-    <img src="marex-logo.png" alt="Marex" style="max-width:240px; max-height:90px; display:none" onload="this.style.display='block'; this.nextElementSibling.style.display='none'" />
+    <!-- Logo hotlinked from marex.no (user-supplied). Drop a local /public/tools/marex-logo.svg to override. -->
+    <img src="marex-logo.svg" alt="Marex" class="real-logo" style="max-width:240px; max-height:90px; display:none; filter: brightness(0) invert(1)"
+         onload="this.style.display='block'; this.nextElementSibling.style.display='none'; this.parentElement.querySelector('.placeholder-tag')?.remove()"
+         onerror="this.onerror=null; this.src='https://marex.no/wp-content/themes/marex2023/dist/images/logo.svg'" />
     <div>
       <div class="wordmark">MAREX</div>
       <div class="tagline">King of the Sea · Norway · Since 1973</div>
@@ -185,8 +187,9 @@
     <span class="placeholder-tag">Wordmark placeholder</span>
   </div>
   <div class="photo">
-    <!-- Drop a real M440 photo at /tools/marex-440-photo.jpg to replace this placeholder -->
-    <img src="marex-440-photo.jpg" alt="Marex 440" class="real" onload="this.style.display='block'; this.nextElementSibling.style.display='none'" />
+    <!-- M440 photo. Drop marex-440-photo.jpg into /public/tools/ to use a local copy. -->
+    <img src="marex-440-photo.jpg" alt="Marex 440" class="real"
+         onload="this.style.display='block'; this.nextElementSibling.style.display='none'; this.parentElement.querySelector('.placeholder-tag')?.remove()" />
     <div class="placeholder">
       <svg width="120" height="60" viewBox="0 0 200 100" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- stylised cruiser silhouette -->
@@ -835,15 +838,55 @@ function openModal() {
   document.getElementById('modal').classList.add('open');
 }
 
-function sendMail() {
+async function sendMail() {
   const { text, grand } = buildSummary();
   const subj = `Marex 440 Quote — ${state.client.first} ${state.client.last} — ${formatAud(grand)}`;
-  const body = text;
   const cc = 'steve@flagshipinternational.com.au';   // Marex brand manager always cc'd
+
+  const btn = document.getElementById('mailBtn');
+  const original = btn.innerText;
+  btn.innerText = 'Sending…'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/quote/send', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: state.broker.email,
+        cc: cc,
+        subject: subj,
+        text: text,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      btn.innerText = '✓ Sent';
+      document.getElementById('modalSub').innerText = `Sent from ${data.sentBy} to ${state.broker.name} <${state.broker.email}>`;
+      setTimeout(() => { document.getElementById('modal').classList.remove('open'); btn.innerText = original; btn.disabled = false; }, 1800);
+      return;
+    }
+
+    if (res.status === 401) {
+      // Not signed in / not connected to Google — fall back to mailto + prompt to connect
+      const reconnect = confirm('Not signed in to Gmail yet. Click OK to open the sign-in page (then come back and resend), or Cancel to use your default mail app instead.');
+      if (reconnect) { window.location.href = '/api/auth/signin/google?callbackUrl=' + encodeURIComponent(location.href); return; }
+      // fall through to mailto fallback
+    } else {
+      alert('Send failed: ' + (data.error || res.statusText) + '\n\nFalling back to your default mail app.');
+    }
+  } catch (e) {
+    alert('Network error sending — falling back to your default mail app. ' + e.message);
+  } finally {
+    btn.innerText = original; btn.disabled = false;
+  }
+
+  // mailto fallback
   const url = `mailto:${encodeURIComponent(state.broker.email)}` +
               `?cc=${encodeURIComponent(cc)}` +
               `&subject=${encodeURIComponent(subj)}` +
-              `&body=${encodeURIComponent(body)}`;
+              `&body=${encodeURIComponent(text)}`;
   window.location.href = url;
 }
 
