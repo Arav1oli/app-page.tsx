@@ -2,12 +2,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
-import { LayoutGrid, List, Anchor, LogOut, Users, ChevronDown } from "lucide-react"
+import { LayoutGrid, List, Anchor, LogOut, Users, ChevronDown, Ship } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/board", label: "Board", icon: LayoutGrid },
   { href: "/leads", label: "All Leads", icon: List },
+  { href: "/fleet", label: "Fleet", icon: Ship },
 ]
 
 export default function Sidebar() {

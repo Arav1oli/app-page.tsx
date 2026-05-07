@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marex 440 — Configuration & Quoting Tool (Wireframe)</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --brand: #0b3954;
+    --accent: #c5a05a;
+    --ok: #16a34a;
+    --warn: #b45309;
+    --bad: #b91c1c;
+    --chip: #eef2f7;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  a { color: var(--brand); }
+  header.topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--brand); color: #fff;
+    padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    border-bottom: 3px solid var(--accent);
+  }
+  header.topbar h1 { margin: 0; font-size: 16px; letter-spacing: .3px; }
+  header.topbar .sub { font-size: 12px; opacity: .8; }
+  header.topbar .mode { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: 12px; }
+  header.topbar select, header.topbar input {
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25);
+    color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px;
+  }
+  header.topbar select option { color: #000; }
+
+  .wrap { display: grid; grid-template-columns: 240px 1fr 360px; gap: 16px; padding: 16px; max-width: 1500px; margin: 0 auto; align-items: start; }
+  @media (max-width: 1100px) { .wrap { grid-template-columns: 1fr; } aside.nav, aside.tally { position: static !important; } }
+
+  aside.nav { position: sticky; top: 80px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: calc(100vh - 100px); overflow: auto; }
+  aside.nav h3 { margin: 4px 8px 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  aside.nav a { display: block; padding: 6px 8px; border-radius: 6px; text-decoration: none; color: var(--ink); font-size: 13px; }
+  aside.nav a:hover { background: var(--chip); }
+  aside.nav a .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; margin-right: 8px; vertical-align: middle; }
+  aside.nav a.touched .dot { background: var(--ok); }
+
+  main { display: flex; flex-direction: column; gap: 14px; }
+  section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  section.card h2 { margin: 0 0 4px; font-size: 16px; color: var(--brand); }
+  section.card .hint { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  section.card .options { display: grid; gap: 8px; }
+  .opt { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; user-select: none; }
+  .opt:hover { background: #fafbfc; }
+  .opt.active { border-color: var(--brand); background: #f0f7fb; }
+  .opt.disabled { opacity: .45; cursor: not-allowed; }
+  .opt input { margin-top: 2px; }
+  .opt .lbl { font-size: 13px; }
+  .opt .lbl small { display: block; color: var(--muted); margin-top: 2px; }
+  .opt .price { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink); white-space: nowrap; }
+  .opt .price.std { color: var(--muted); font-style: italic; }
+  .price-hidden { visibility: hidden; }
+
+  .standardlist { columns: 2; column-gap: 24px; font-size: 12px; color: #334155; }
+  .standardlist li { break-inside: avoid; margin-bottom: 4px; }
+  @media (max-width: 700px) { .standardlist { columns: 1; } }
+
+  aside.tally { position: sticky; top: 80px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; max-height: calc(100vh - 100px); overflow: auto; }
+  aside.tally h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .tally-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+  .tally-row.total { border-top: 2px solid var(--ink); margin-top: 6px; padding-top: 8px; font-weight: 700; font-size: 15px; }
+  .tally-row .lbl { color: var(--ink); }
+  .tally-row .val { font-variant-numeric: tabular-nums; }
+  .tally-section { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 6px; }
+  .tally-section h4 { margin: 0 0 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+  .tally-section .item { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 2px 0; }
+  .tally-section .item .name { color: #334155; }
+  .tally-section .item .amt { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .field { display: block; margin: 6px 0; }
+  .field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 3px; }
+  .field input, .field select { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; background: #fff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; }
+  .toggle input { transform: translateY(1px); }
+
+  button.primary {
+    width: 100%; margin-top: 10px; padding: 10px 14px; background: var(--brand); color: #fff;
+    border: 0; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  button.primary:hover { filter: brightness(1.1); }
+  button.ghost {
+    width: 100%; margin-top: 6px; padding: 8px; background: transparent; color: var(--brand);
+    border: 1px solid var(--brand); border-radius: 8px; font-size: 12px; cursor: pointer;
+  }
+  .disclaimer { font-size: 11px; color: var(--muted); line-height: 1.5; padding: 8px; background: #f8fafc; border: 1px dashed var(--line); border-radius: 6px; margin-top: 8px; }
+
+  .badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 99px; background: var(--chip); color: var(--muted); margin-left: 6px; }
+  .badge.req { background: #fef3c7; color: #92400e; }
+  .badge.lock { background: #fee2e2; color: #991b1b; }
+
+  /* modal */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .6); z-index: 50; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow: auto; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; max-width: 760px; width: 100%; padding: 22px 26px; }
+  .modal h2 { margin: 0 0 4px; color: var(--brand); }
+  .modal pre { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 14px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 50vh; overflow: auto; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .modal .actions button { flex: 1; padding: 10px; border-radius: 8px; border: 0; font-weight: 600; cursor: pointer; }
+  .modal .actions .send { background: var(--brand); color: #fff; }
+  .modal .actions .copy { background: var(--chip); color: var(--ink); }
+  .modal .actions .close { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+
+  .footer-note { text-align: center; font-size: 11px; color: var(--muted); padding: 12px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <h1>MAREX 440 — Configuration & Quoting Tool</h1>
+    <div class="sub">Wireframe build — Flagship International Yacht Brokers</div>
+  </div>
+  <div class="mode">
+    <label>Mode
+      <select id="mode">
+        <option value="internal">Internal (prices visible)</option>
+        <option value="public">Public (prices hidden)</option>
+      </select>
+    </label>
+    <label>EUR→AUD spot
+      <input id="fx" type="number" step="0.0001" value="1.6500" style="width:90px" />
+    </label>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===================== LEFT NAV ===================== -->
+  <aside class="nav" id="nav">
+    <h3>Sections</h3>
+    <a href="#client"><span class="dot"></span>Client & Broker</a>
+    <a href="#s1"><span class="dot"></span>1. Engine & Drivetrain</a>
+    <a href="#s2"><span class="dot"></span>2. Volvo Penta Upgrades</a>
+    <a href="#s4"><span class="dot"></span>4. Main Deck Layout</a>
+    <a href="#s5"><span class="dot"></span>5. Lower Deck Layout</a>
+    <a href="#s6"><span class="dot"></span>6. Stern Platform</a>
+    <a href="#s7"><span class="dot"></span>7. Standard Equipment</a>
+    <a href="#s8"><span class="dot"></span>8. Electronics</a>
+    <a href="#s9"><span class="dot"></span>9. Electrical System</a>
+    <a href="#s10"><span class="dot"></span>10. Lighting</a>
+    <a href="#s11"><span class="dot"></span>11. Vessel Operational</a>
+    <a href="#s12"><span class="dot"></span>12. Exterior Comfort</a>
+    <a href="#s13"><span class="dot"></span>13. Interior Comfort</a>
+    <a href="#s14"><span class="dot"></span>14. Hull Gelcoat</a>
+    <a href="#s15"><span class="dot"></span>15. Antifoul</a>
+    <a href="#s16"><span class="dot"></span>16. Canvas Canopy</a>
+    <a href="#s17"><span class="dot"></span>17. Seat Cushion</a>
+    <a href="#s18"><span class="dot"></span>18. Dashboard</a>
+    <a href="#s19"><span class="dot"></span>19. Cabinetry</a>
+    <a href="#s20"><span class="dot"></span>20. Saloon Window Coverings</a>
+    <a href="#review"><span class="dot"></span>Review & Send</a>
+  </aside>
+
+  <!-- ===================== MAIN OPTIONS ===================== -->
+  <main id="main">
+
+    <section class="card" id="client">
+      <h2>Client & Broker Details</h2>
+      <div class="hint">Required to generate a quote. Lead will be pushed to HubSpot on submit (TBD wiring).</div>
+      <div class="row2">
+        <div class="field"><label>First Name *</label><input id="cFirst" type="text" /></div>
+        <div class="field"><label>Last Name *</label><input id="cLast" type="text" /></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Email *</label><input id="cEmail" type="email" /></div>
+        <div class="field"><label>Mobile *</label><input id="cMobile" type="tel" /></div>
+      </div>
+      <div class="field"><label>Broker *</label>
+        <select id="broker">
+          <option value="steve@flagshipinternational.com.au|Steve Williams (Marex Brand Manager)" selected>Steve Williams — steve@flagshipinternational.com.au</option>
+          <option value="adrian@flagshipinternational.com.au|Adrian Ravasio">Adrian Ravasio — adrian@flagshipinternational.com.au</option>
+          <option value="marley@flagshipinternational.com.au|Marley Cutbush">Marley Cutbush — marley@flagshipinternational.com.au</option>
+          <option value="blayne@flagshipinternational.com.au|Blayne">Blayne — blayne@flagshipinternational.com.au</option>
+          <option value="jimmy@flagshipinternational.com.au|Jimmy">Jimmy — jimmy@flagshipinternational.com.au</option>
+          <option value="phil@flagshipinternational.com.au|Phil">Phil — phil@flagshipinternational.com.au</option>
+          <option value="pete@flagshipinternational.com.au|Pete">Pete — pete@flagshipinternational.com.au</option>
+          <option value="audrey@flagshipinternational.com.au|Audrey">Audrey — audrey@flagshipinternational.com.au</option>
+          <option value="jp@flagshipinternational.com.au|JP">JP — jp@flagshipinternational.com.au</option>
+          <option value="jonathan@flagshipinternational.com.au|Jonathan">Jonathan — jonathan@flagshipinternational.com.au</option>
+          <option value="cleo@flagshipinternational.com.au|Cleo">Cleo — cleo@flagshipinternational.com.au</option>
+          <option value="angela@flagshipinternational.com.au|Angela Necesario">Angela Necesario — angela@flagshipinternational.com.au</option>
+        </select>
+      </div>
+      <div class="toggle"><input type="checkbox" id="addDuty" /> <label for="addDuty">Include Import Duty (5% est.)</label></div>
+      <div class="toggle"><input type="checkbox" id="addGst" /> <label for="addGst">Include GST (10%)</label></div>
+    </section>
+
+    <!-- Sections render here -->
+    <div id="sectionsRoot"></div>
+
+    <section class="card" id="review">
+      <h2>Review & Send Quote</h2>
+      <div class="hint">Review your configuration in the live tally on the right, then send the quote. The email opens in your default mail app, pre-filled to the selected broker, sent from your own email address.</div>
+      <button class="primary" id="reviewBtn">Open Quote Summary →</button>
+      <div class="disclaimer">
+        <strong>Pricing notes:</strong> All prices are in € EUR including the 9% Flagship retail uplift. AUD totals are calculated using the daily spot rate shown above (live FX integration TBD).<br>
+        <strong>Disclaimers (auto-included on quote):</strong>
+        Price is Ex-Factory. Does not include transport from Europe. Prices reflect Australian Retail. Final landed cost subject to Customs assessment for Import Duty and GST.
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================== RIGHT TALLY ===================== -->
+  <aside class="tally" id="tally">
+    <h3>Live Quote</h3>
+    <div id="tallyBody"></div>
+    <div class="tally-row total"><span class="lbl">Subtotal (EUR)</span><span class="val" id="totalEur">€0</span></div>
+    <div class="tally-row"><span class="lbl">Subtotal (AUD)</span><span class="val" id="totalAud">A$0</span></div>
+    <div class="tally-row" id="dutyRow" style="display:none"><span class="lbl">+ Import Duty (5%)</span><span class="val" id="duty">A$0</span></div>
+    <div class="tally-row" id="gstRow" style="display:none"><span class="lbl">+ GST (10%)</span><span class="val" id="gst">A$0</span></div>
+    <div class="tally-row total"><span class="lbl">Total (AUD)</span><span class="val" id="grand">A$0</span></div>
+    <button class="primary" id="sendBtn">📧 Email Quote to Broker</button>
+    <button class="ghost" id="resetBtn">Reset Configuration</button>
+    <div class="disclaimer">Ex-Factory price. Excludes transport from Europe. Australian Retail.</div>
+  </aside>
+
+</div>
+
+<!-- ===================== MODAL ===================== -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>Quote Summary</h2>
+    <div class="hint" id="modalSub" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+    <pre id="modalBody"></pre>
+    <div class="actions">
+      <button class="copy" id="copyBtn">Copy to Clipboard</button>
+      <button class="send" id="mailBtn">📧 Send via Email</button>
+      <button class="close" id="closeBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">Wireframe — pricing reflects Marex 440 retail (with 9% Flagship uplift). For internal review only. Public version will hide prices and include boat photos / GA diagrams / teak diagrams.</div>
+
+<script>
+/* =========================================================
+   PRICEBOOK — Marex 440
+   ========================================================= */
+const PRICEBOOK = [
+  { id: 's1', num: '1', title: 'Engine & Drivetrain', type: 'single', hint: 'Choose one drivetrain configuration.',
+    options: [
+      { id: 'eng-d6480-stern',  label: 'Twin Volvo Penta D6-480 (2×480hp) — DPI Sterndrives',          price: 879556, drive: 'sterndrive' },
+      { id: 'eng-d6440-stern',  label: 'Twin Volvo Penta D6-440 (2×440hp) — DPI Sterndrives',          price: 858301, drive: 'sterndrive' },
+      { id: 'eng-ips650',       label: 'Twin Volvo Penta IPS D6-650 (2×480hp) — Joystick',             price: 941275, drive: 'ips' },
+      { id: 'eng-ips600',       label: 'Twin Volvo Penta IPS D6-600 (2×440hp) — Joystick',             price: 978945, drive: 'ips' },
+      { id: 'eng-d6480-vdrive', label: 'Twin Volvo Penta D6-480 (2×480hp) — V-Drive Shafts',           price: 884928, drive: 'vdrive' },
+    ]
+  },
+  { id: 's2', num: '2', title: 'Volvo Penta System Upgrades', type: 'multi', hint: 'Multi-select. Some require Garmin Glass Cockpit (Section 8).',
+    options: [
+      { id: 'vp-jdock',  label: 'VP Joystick Docking Control', note: 'Sterndrive systems only',                     price: 13660, requiresDrive: 'sterndrive' },
+      { id: 'vp-dps',    label: 'VP Dynamic Positioning System (DPS)', note: 'Requires Garmin Glass Cockpit',       price: 16279, requires: ['el-garmin'] },
+      { id: 'vp-jdrive', label: 'VP Joystick Driving System',                                                         price: 15713 },
+      { id: 'vp-assist', label: 'VP Assisted Docking + Bow Thruster Upgrade', note: 'Requires DPS + Garmin Glass',  price: 11480, requires: ['vp-dps','el-garmin'] },
+      { id: 'vp-corr-s', label: 'VP Active Corrosion Protection — Sterndrives', note: 'Sterndrive only',             price: 3926, requiresDrive: 'sterndrive' },
+      { id: 'vp-corr-i', label: 'VP Active Corrosion Protection — IPS Drives',  note: 'IPS only',                    price: 4938, requiresDrive: 'ips' },
+      { id: 'vp-fuel',   label: 'VP Redundant Fuel Filter System (twin engines)', note: 'Inc. water separators, indicators, magnetic conditioners', price: 9964 },
+    ]
+  },
+  { id: 's4', num: '4', title: 'Main Deck Layout', type: 'single', hint: 'Choose one. Drives kitchen / saloon configuration.',
+    options: [
+      { id: 'md-gourmet',     label: 'Gourmet Cruiser Layout (Standard)', price: 0, std: true,  layout: 'gourmet' },
+      { id: 'md-gourmet-pan', label: 'Gourmet Cruiser + Sliding Panoramic Doors', price: 22409, layout: 'gourmet' },
+      { id: 'md-scandi',      label: 'Scandinavia Layout', price: 22409, layout: 'scandinavia' },
+    ]
+  },
+  { id: 's5', num: '5', title: 'Lower Deck Layout', type: 'single', hint: 'Choose one. Drives Air Conditioning option in Section 13.',
+    options: [
+      { id: 'ld-2cab', label: '2 Sleeping Cabins + 2 Heads (Standard)', price: 0, std: true, cabins: 2 },
+      { id: 'ld-3cab', label: '3 Sleeping Cabins + 2 Heads',            price: 12110, cabins: 3 },
+    ]
+  },
+  { id: 's6', num: '6', title: 'Stern Platform', type: 'single', hint: 'Hydraulic option requires teak decking selection in Section 12.',
+    options: [
+      { id: 'sp-fixed', label: 'Fixed Stern Platform (Standard)', price: 0, std: true },
+      { id: 'sp-hyd',   label: 'Hydraulic Stern Platform with Folding Steps (max 800kg)', note: 'Requires teak decking', price: 33267, requiresAny: ['ec-teak-all','ec-teak-side','ec-teak-stern'] },
+    ]
+  },
+  { id: 's7', num: '7', title: 'Standard Equipment (Included)', type: 'info',
+    items: [
+      'Vessel electrical system is 24v',
+      'Hull protected with antifoul paint (incl. shafts if V-Drive)',
+      'Battery Charger and 25m Shore Power Cable',
+      'AGM Battery System (6×110Ah House + 4×Engine Start + 2 for Thruster)',
+      'Sunroof ×2 and Aft Canopy Enclosure',
+      'Corian benchtops',
+      'Extractor hood in Galley',
+      'Windscreen Defroster + Hot air outlet in cockpit',
+      'Miele Dishwasher (Gourmet Cruiser only)',
+      'Double drawer fridge 182L + freezer 95L in galley',
+      'Dimmers for LED lighting in all cabins',
+      'Smoke alarms in all cabins and engine room',
+      'CO alarms in all cabins',
+      'Heaters (2×4kW) with multiple outlets',
+      'Miele Cooktop & Oven in Galley (Electric)',
+      'Hot water Boiler (80L) AC Electric',
+      'Insect Screens for all windows (excl. doorways)',
+      'Pilot doors ×2 (Port & Starboard)',
+      'Swim shower on stern (hot & cold)',
+      'Bow Thruster — 140kgf (8.0kW) with remote',
+      'Pre-prep for hydraulic autopilot',
+      'Fusion Audio System (cockpit & saloon speakers)',
+      'USB outlets in all cabins',
+      'Natural teak timber on gunwhale',
+      'Ash flooring in cockpit & saloon',
+      'Mattresses in all sleeping cabins',
+      'Windscreen wipers & washer nozzles (main water tank)',
+      'Zipwake Dynamic Trim Control System',
+      'Full protection & wrapping for transport',
+    ]
+  },
+  { id: 's8', num: '8', title: 'Electronics', type: 'multi',
+    options: [
+      { id: 'el-garmin', label: 'Garmin Glass Cockpit Marine Electronics package', note: '2×16in MFDs, B60 transducer, GMR Fantom 18x Radar, Reactor 40 Autopilot, Volvo SBW corepack, AIS 800, VHF 315i', price: 22777 },
+      { id: 'el-rpi',    label: 'Rudder Position Indicator', note: 'V-Drive shafts only — pricing TBC with factory', price: 0, std: true, requiresDrive: 'vdrive' },
+      { id: 'el-fusion', label: 'Fusion Audio System Upgrade',                                          price: 4851 },
+      { id: 'el-cams',   label: 'Cameras — Stern + Anchor System Views',                                price: 1182 },
+      { id: 'el-tv-sal', label: 'TV in Saloon (folding/rotating bracket)',                              price: 4086 },
+      { id: 'el-tv-fwd', label: 'TV in Forward (Master) Cabin',                                         price: 2752 },
+      { id: 'el-wifi',   label: 'Glomex Wi-Fi 5G Weboat', note: 'Requires local SIM card',              price: 2442 },
+    ]
+  },
+  { id: 's9', num: '9', title: 'Electrical System', type: 'multi',
+    options: [
+      { id: 'es-gen',        label: 'Whisper Power Marine 8kW Diesel Generator (with own 6A charger)', price: 27468, capability: 'generator' },
+      { id: 'es-inv',        label: 'Inverter — Combo 24v / 240v / 3500W',                              price: 5919 },
+      { id: 'es-batt-extra', label: 'Extra AGM Battery Pack (2×110Ah)',                                  price: 1588 },
+      { id: 'es-furler',     label: 'Electric Cable Furler — Shore Power Connection',                   price: 2188 },
+      { id: 'es-solar1k',    label: 'Solar Panels 1000W with Monitoring App', note: 'Mutually exclusive with 1500W', price: 8989, conflicts: ['es-solar1k5'] },
+      { id: 'es-solar1k5',   label: 'Solar Panels 1500W with Monitoring App', note: 'Mutually exclusive with 1000W', price: 13459, conflicts: ['es-solar1k'] },
+      { id: 'es-galv',       label: 'Galvanic Isolator', note: 'Recommended with 4× A/C units',         price: 2024 },
+      { id: 'es-au',         label: 'AC Electrical upgrade to AU/NZ standard (incl. all sockets)',      price: 924 },
+    ]
+  },
+  { id: 's10', num: '10', title: 'Lighting', type: 'multi',
+    options: [
+      { id: 'lt-courtesy', label: 'Courtesy lights on decks + cockpit mood lighting',           price: 2769 },
+      { id: 'lt-uw-wb',    label: 'Underwater lights (4 on transom) — White & Blue', note: 'Mutually exclusive with RGB', price: 3172, conflicts: ['lt-uw-rgb'] },
+      { id: 'lt-uw-rgb',   label: 'Underwater lights (4 on transom) — Multi-colour RGB', note: 'Mutually exclusive with White/Blue', price: 4759, conflicts: ['lt-uw-wb'] },
+      { id: 'lt-dock',     label: 'LED Docking Floodlights',                                    price: 1026 },
+      { id: 'lt-search',   label: 'LED Searchlight with Joystick Remote at helm',               price: 2057 },
+    ]
+  },
+  { id: 's11', num: '11', title: 'Vessel Operational', type: 'multi',
+    options: [
+      { id: 'op-anchor-bow',  label: 'Anchor Winch (Bow) — Electric, chain counter, helm remote', price: 9941, capability: 'bowwinch' },
+      { id: 'op-anchor-sten', label: 'Anchor Winch (Stern) — Electric, chain counter, helm remote', price: 6599 },
+      { id: 'op-chain',       label: 'Galvanised Anchor Chain (60m)', note: 'Requires bow anchor winch', price: 2640, requires: ['op-anchor-bow'] },
+      { id: 'op-bowsprit',    label: 'Fold-away bowsprit with boarding ladder',                  price: 2998 },
+      { id: 'op-foldmast',    label: 'Folding Mast (reduces bridge clearance)',                  price: 2627 },
+      { id: 'op-grey',        label: 'Grey Water Holding Tank', note: 'May be plumbed for fresh water', price: 6704 },
+      { id: 'op-gyro-cx16',   label: 'Gyro Stabiliser — Quick CX16', note: 'Requires generator',  price: 79272, requires: ['es-gen'], conflicts: ['op-gyro-sk6'] },
+      { id: 'op-gyro-sk6',    label: 'Gyro Stabiliser — Seakeeper 6', note: 'Requires generator', price: 119544, requires: ['es-gen'], conflicts: ['op-gyro-cx16'] },
+      { id: 'op-deckwash',    label: 'High-pressure deck wash (fresh/sea water + auto-furling)', price: 2487 },
+      { id: 'op-humphree',    label: 'Humphree X-750 dynamic trim system w/ comfort software',   price: 12100 },
+      { id: 'op-tender-man',  label: 'Retractable Tender Chocks on Stern Platform — Manual',     price: 2998, conflicts: ['op-tender-hyd'] },
+      { id: 'op-tender-hyd',  label: 'Retractable Tender Chocks on Stern Platform — Hydraulic',  price: 5690, conflicts: ['op-tender-man'] },
+      { id: 'op-mg',          label: 'Magnesium Anodes (in lieu of Zinc / Aluminium)',           price: 637 },
+      { id: 'op-passerelle',  label: 'Passerelle gangway — Hydraulic, Teak Steps',                price: 32842 },
+      { id: 'op-stern-thrust',label: 'Stern Thruster — 140kgf (8.0kW) with remote',               price: 8233 },
+    ]
+  },
+  { id: 's12', num: '12', title: 'Exterior Comfort', type: 'multi',
+    options: [
+      { id: 'ec-wincover', label: 'Window Cover for Sun Protection (exterior)',     price: 2627 },
+      { id: 'ec-fenders',  label: 'Set of 6 Fenders (Marex logo covers) + 6×9mm Dock Lines', price: 1581 },
+      { id: 'ec-aftscreen',label: 'Sliding Insect Screen for Aft Doorway',          price: 1363 },
+      { id: 'ec-sunpad',   label: 'Foredeck Sun Pad (floating)',                    price: 2453 },
+      { id: 'ec-sunlounge',label: 'Foredeck Sun Lounger w/ lift-up backrests (floating)', price: 4316 },
+      { id: 'ec-teak-all',   label: 'Teak Decking on All Areas',         note: 'Natural or Synthetic', price: 33104 },
+      { id: 'ec-teak-side',  label: 'Teak Decking — Side Decks only',    note: 'Natural or Synthetic', price: 18698 },
+      { id: 'ec-teak-stern', label: 'Teak Decking — Stern Platform & Aft Hatches only', note: 'Natural or Synthetic', price: 14407 },
+    ]
+  },
+  { id: 's13', num: '13', title: 'Interior Comfort', type: 'multi',
+    options: [
+      { id: 'ic-ac2',         label: 'Air Conditioning — 2-cabin layout', note: 'Requires Generator + 2-cabin Lower Deck', price: 26883, requires: ['es-gen'], requiresAny: ['ld-2cab'], conflicts: ['ic-ac3'] },
+      { id: 'ic-ac3',         label: 'Air Conditioning — 3-cabin layout', note: 'Requires Generator + 3-cabin Lower Deck', price: 35844, requires: ['es-gen'], requiresAny: ['ld-3cab'], conflicts: ['ic-ac2'] },
+      { id: 'ic-ac-tropical', label: 'A/C Tropical Upgrade (2 or 3 cabin)', note: 'Requires A/C', price: 8961, requiresAny: ['ic-ac2','ic-ac3'] },
+      { id: 'ic-bedding',     label: 'Bedding set (1 sheet + 2 blanket covers + 2 pillow covers)', price: 558 },
+      { id: 'ic-cockpit-tbl', label: 'Cockpit Table — Twin folding sides w/ removable centre',   price: 1984 },
+      { id: 'ic-fridge-top',  label: 'Top-Loading Fridge in Galley Benchtop', note: 'Gourmet Cruiser only', price: 3722, requiresAny: ['md-gourmet','md-gourmet-pan'] },
+      { id: 'ic-table-bed',   label: 'Convertible Table to Bed in Saloon w/ infill', note: 'Scandinavia layout only', price: 3878, requiresAny: ['md-scandi'] },
+      { id: 'ic-helm-adj',    label: 'Adjustable Helm Console — Wheel & Throttles', price: 1908 },
+      { id: 'ic-helm-step',   label: 'Retractable Sliding Helm Step (Electric)',     price: 4927 },
+      { id: 'ic-hidronic',    label: 'Hidronic Heating System (in lieu of standard diesel air heating)', price: 4709 },
+      { id: 'ic-laundry',     label: 'Miele Washer / Dryer',                          price: 4262 },
+      { id: 'ic-icemaker',    label: 'Icemaker in Galley (in lieu of Freezer)', note: 'Gourmet Cruiser only', price: 2198, requiresAny: ['md-gourmet','md-gourmet-pan'] },
+      { id: 'ic-freezer-cock',label: 'Freezer Drawer in Cockpit',                     price: 1625 },
+    ]
+  },
+  { id: 's14', num: '14', title: 'Hull Gelcoat Colour', type: 'single',
+    options: [
+      { id: 'hu-std',     label: 'White (RAL 9010) + Umbra Grey (RAL 7022) accents (Standard)', price: 0, std: true },
+      { id: 'hu-cacao',   label: 'Grey Beige (Cacao) — RAL 1019',     price: 21800 },
+      { id: 'hu-carmine', label: 'Carmine Red — RAL 3002',            price: 21800 },
+      { id: 'hu-steel',   label: 'Steel Blue — RAL 5011',             price: 21800 },
+      { id: 'hu-pebble',  label: 'Pebble Grey — RAL 7032',            price: 21800 },
+      { id: 'hu-wrap',    label: 'Oracal 970 Series Wrap Film (any available colour)', price: 9682 },
+    ]
+  },
+  { id: 's15', num: '15', title: 'Antifoul Paint Colour', type: 'single',
+    options: [
+      { id: 'af-black',  label: 'Black (Standard)',          price: 0, std: true },
+      { id: 'af-custom', label: 'Non-standard Antifoul Colour', price: 383 },
+    ]
+  },
+  { id: 's16', num: '16', title: 'Canvas Canopy Colour', type: 'single',
+    options: [
+      { id: 'cv-s5082',  label: 'Dark Grey S5082 (Standard)',  price: 0, std: true },
+      { id: 'cv-s5035',  label: 'Silver Grey S5035 (Standard)', price: 0, std: true },
+      { id: 'cv-p055',   label: 'Beige P055 (Standard)',        price: 0, std: true },
+      { id: 'cv-s5087',  label: 'Medium Grey S5087',            price: 796 },
+      { id: 'cv-sp058',  label: 'Neptune Blue SP058',           price: 796 },
+      { id: 'cv-s5057',  label: 'Captain Navy S5057',           price: 796 },
+      { id: 'cv-s5048',  label: 'Hemp Beige S5048',             price: 796 },
+    ]
+  },
+  { id: 's17', num: '17', title: 'Seat Cushion Colour', type: 'single',
+    options: [
+      { id: 'sc-nau8001', label: 'White — Skay Nautilus Marshmallow NAU8001 (Standard)', price: 0, std: true },
+      { id: 'sc-nau1001', label: 'Beige — Skay Nautilus Sandshell NAU1001 (Standard)',   price: 0, std: true },
+      { id: 'sc-niroxx',  label: 'Mandel Brown — Niroxx Marine 99.020',         price: 5356 },
+      { id: 'sc-alc5810', label: 'Steel — Microfiber Alcantara 5810',           price: 7619 },
+      { id: 'sc-alc3883', label: 'Grey — Microfiber Alcantara 3883',            price: 7619 },
+      { id: 'sc-alc9165', label: 'Monkfish — Microfiber Alcantara 9165',        price: 7619 },
+      { id: 'sc-alc6225', label: 'Dark Grey — Microfiber Alcantara 6225',       price: 7619 },
+      { id: 'sc-alc1100', label: 'Sea Sand — Microfiber Alcantara 1100',        price: 7619 },
+      { id: 'sc-alc1709', label: 'Sand — Microfiber Alcantara 1709',            price: 7619 },
+      { id: 'sc-sunR019', label: 'Sand — Sunbrella LOPI R019',                  price: 5356 },
+    ]
+  },
+  { id: 's18', num: '18', title: 'Dashboard Colour', type: 'single',
+    options: [
+      { id: 'db-s95',    label: 'White — NEXTEL S95 (Standard)',     price: 0, std: true },
+      { id: 'db-j32',    label: 'Brazil — NEXTEL J32',               price: 2790 },
+      { id: 'db-j67',    label: 'Havana — NEXTEL J67',               price: 2790 },
+      { id: 'db-s153',   label: 'Medium Grey — NEXTEL S153',         price: 2790 },
+      { id: 'db-s631',   label: 'Neptune Blue — NEXTEL S631',        price: 2790 },
+      { id: 'db-b21',    label: 'Dark Anthracite — NEXTEL B21',      price: 2790 },
+      { id: 'db-umbra',  label: 'Umbra Grey — NEXTEL',                price: 2790 },
+    ]
+  },
+  { id: 's19', num: '19', title: 'Cabinetry Colour', type: 'single',
+    options: [
+      { id: 'cb-neg',    label: 'Walnut "Negroni" — Engineered Timber (Standard)', price: 0, std: true },
+      { id: 'cb-pro',    label: 'Walnut "Prosecco" — Engineered Timber',           price: 4676 },
+      { id: 'cb-walnat', label: 'Walnut — Natural Timber',                          price: 4676 },
+      { id: 'cb-teakeng',label: 'Teak — Engineered Timber',                         price: 4676 },
+      { id: 'cb-teaknat',label: 'Teak — Natural Timber (unique cut & colour)',      price: 4676 },
+    ]
+  },
+  { id: 's20', num: '20', title: 'Saloon Window Coverings', type: 'single',
+    options: [
+      { id: 'wc-none',    label: 'No Window Coverings (Standard)',          price: 0, std: true },
+      { id: 'wc-curtain', label: 'Curtains — Sand (Blockout) Dimi 003',      price: 1982 },
+      { id: 'wc-roller',  label: 'Roller Blinds',                            price: 1982 },
+    ]
+  },
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const state = {
+  selections: new Set(),         // option ids
+  singles: {},                   // sectionId -> option id
+  fx: 1.65,
+  mode: 'internal',
+  client: { first: '', last: '', email: '', mobile: '' },
+  broker: { email: 'steve@flagshipinternational.com.au', name: 'Steve Williams (Marex Brand Manager)' },
+  addDuty: false,
+  addGst: false,
+};
+
+const optById = {};
+const optToSection = {};
+PRICEBOOK.forEach(s => (s.options || []).forEach(o => { optById[o.id] = o; optToSection[o.id] = s; }));
+
+/* =========================================================
+   RENDER SECTIONS
+   ========================================================= */
+const root = document.getElementById('sectionsRoot');
+PRICEBOOK.forEach(sec => {
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.id = sec.id;
+  card.innerHTML = `<h2>${sec.num}. ${sec.title}</h2>` +
+    (sec.hint ? `<div class="hint">${sec.hint}</div>` : '') +
+    (sec.type === 'info'
+      ? `<ul class="standardlist">${sec.items.map(i => `<li>${i}</li>`).join('')}</ul>`
+      : `<div class="options" data-section="${sec.id}" data-type="${sec.type}"></div>`);
+  root.appendChild(card);
+  if (sec.type === 'info') return;
+  const box = card.querySelector('.options');
+  sec.options.forEach(o => {
+    const row = document.createElement('label');
+    row.className = 'opt';
+    row.dataset.optId = o.id;
+    row.innerHTML = `
+      <input type="${sec.type === 'single' ? 'radio' : 'checkbox'}" name="${sec.id}" value="${o.id}" ${o.std && sec.type === 'single' ? 'checked' : ''} />
+      <div class="lbl">${o.label}${o.note ? `<small>${o.note}</small>` : ''}</div>
+      <div class="price">${o.std ? '<span class="std">Included</span>' : ''}${!o.std ? formatEur(o.price) : ''}</div>
+    `;
+    box.appendChild(row);
+    if (o.std && sec.type === 'single') state.singles[sec.id] = o.id;
+  });
+});
+
+/* =========================================================
+   EVENT HANDLERS
+   ========================================================= */
+document.getElementById('mode').addEventListener('change', e => { state.mode = e.target.value; render(); });
+document.getElementById('fx').addEventListener('input', e => { state.fx = Number(e.target.value) || 0; render(); });
+document.getElementById('cFirst').addEventListener('input', e => state.client.first = e.target.value);
+document.getElementById('cLast').addEventListener('input',  e => state.client.last  = e.target.value);
+document.getElementById('cEmail').addEventListener('input', e => state.client.email = e.target.value);
+document.getElementById('cMobile').addEventListener('input',e => state.client.mobile= e.target.value);
+document.getElementById('broker').addEventListener('change', e => {
+  const [email, name] = e.target.value.split('|'); state.broker = { email, name };
+});
+document.getElementById('addDuty').addEventListener('change', e => { state.addDuty = e.target.checked; render(); });
+document.getElementById('addGst').addEventListener('change',  e => { state.addGst  = e.target.checked; render(); });
+
+document.getElementById('sectionsRoot').addEventListener('change', e => {
+  if (!(e.target.matches('input[type=radio], input[type=checkbox]'))) return;
+  const optId = e.target.value;
+  const sec = optToSection[optId];
+  if (sec.type === 'single') {
+    state.singles[sec.id] = optId;
+    sec.options.forEach(o => state.selections.delete(o.id));
+    state.selections.add(optId);
+  } else {
+    if (e.target.checked) state.selections.add(optId);
+    else state.selections.delete(optId);
+  }
+  render();
+});
+
+document.getElementById('reviewBtn').addEventListener('click', openModal);
+document.getElementById('sendBtn').addEventListener('click', openModal);
+document.getElementById('resetBtn').addEventListener('click', () => { if (confirm('Reset all selections?')) location.reload(); });
+document.getElementById('closeBtn').addEventListener('click', () => document.getElementById('modal').classList.remove('open'));
+document.getElementById('mailBtn').addEventListener('click', sendMail);
+document.getElementById('copyBtn').addEventListener('click', () => {
+  navigator.clipboard.writeText(document.getElementById('modalBody').innerText);
+  document.getElementById('copyBtn').innerText = '✓ Copied';
+  setTimeout(() => document.getElementById('copyBtn').innerText = 'Copy to Clipboard', 1500);
+});
+
+/* =========================================================
+   RULES — gating logic
+   ========================================================= */
+function isAllowed(opt) {
+  const drive = (function () {
+    const eId = state.singles['s1'];
+    return eId ? optById[eId].drive : null;
+  })();
+  if (opt.requiresDrive && opt.requiresDrive !== drive) return { ok: false, reason: `Requires ${opt.requiresDrive} drivetrain` };
+  if (opt.requires) {
+    for (const r of opt.requires) if (!state.selections.has(r)) return { ok: false, reason: `Requires: ${optById[r] ? optById[r].label : r}` };
+  }
+  if (opt.requiresAny) {
+    if (!opt.requiresAny.some(r => state.selections.has(r))) return { ok: false, reason: `Requires one of: ${opt.requiresAny.map(r => optById[r] ? optById[r].label : r).join(' / ')}` };
+  }
+  return { ok: true };
+}
+
+/* =========================================================
+   RENDER (tally + gating + nav)
+   ========================================================= */
+function render() {
+  // Gate options + reflect state
+  document.querySelectorAll('.opt').forEach(row => {
+    const optId = row.dataset.optId;
+    const opt = optById[optId];
+    if (!opt) return;
+    const allowed = isAllowed(opt);
+    row.classList.toggle('disabled', !allowed.ok);
+    row.classList.toggle('active', state.selections.has(optId));
+    const input = row.querySelector('input');
+    input.disabled = !allowed.ok;
+    if (!allowed.ok && state.selections.has(optId) && input.type === 'checkbox') {
+      // auto-deselect blocked checkboxes
+      state.selections.delete(optId); input.checked = false; row.classList.remove('active');
+    }
+    // Hide prices in public mode
+    row.querySelector('.price').classList.toggle('price-hidden', state.mode === 'public');
+    // Update note for blocked
+    const lbl = row.querySelector('.lbl small');
+    if (lbl && !allowed.ok) lbl.style.color = 'var(--bad)';
+    else if (lbl) lbl.style.color = 'var(--muted)';
+  });
+
+  // Nav touched indicators
+  const touched = new Set();
+  state.selections.forEach(id => touched.add(optToSection[id].id));
+  document.querySelectorAll('#nav a').forEach(a => {
+    const id = a.getAttribute('href').slice(1);
+    a.classList.toggle('touched', touched.has(id));
+  });
+
+  // Tally
+  const lines = [];
+  let subtotalEur = 0;
+  PRICEBOOK.forEach(sec => {
+    if (sec.type === 'info') return;
+    const picks = (sec.options || []).filter(o => state.selections.has(o.id));
+    if (!picks.length) return;
+    const items = picks.filter(o => !o.std);
+    if (!items.length) return;
+    lines.push(`<div class="tally-section"><h4>${sec.num}. ${sec.title}</h4>` +
+      items.map(o => {
+        subtotalEur += o.price;
+        return `<div class="item"><span class="name">${o.label}</span><span class="amt">${formatEur(o.price)}</span></div>`;
+      }).join('') +
+    `</div>`);
+  });
+  document.getElementById('tallyBody').innerHTML = lines.join('') || '<div class="hint" style="font-size:12px;color:var(--muted)">No upgrades selected yet.</div>';
+
+  // Base hull (engine) is the foundation — show separately at top
+  const eng = state.singles['s1'] ? optById[state.singles['s1']] : null;
+  if (eng) {
+    subtotalEur += eng.price;
+  }
+
+  const fx = state.fx || 1;
+  const subAud = subtotalEur * fx;
+  const duty = state.addDuty ? subAud * 0.05 : 0;
+  const gst  = state.addGst  ? (subAud + duty) * 0.10 : 0;
+  const grand = subAud + duty + gst;
+
+  document.getElementById('totalEur').innerText = formatEur(subtotalEur);
+  document.getElementById('totalAud').innerText = formatAud(subAud);
+  document.getElementById('duty').innerText = formatAud(duty);
+  document.getElementById('gst').innerText  = formatAud(gst);
+  document.getElementById('grand').innerText = formatAud(grand);
+  document.getElementById('dutyRow').style.display = state.addDuty ? 'flex' : 'none';
+  document.getElementById('gstRow').style.display  = state.addGst  ? 'flex' : 'none';
+
+  // Hide all prices in public mode
+  const showPrices = state.mode === 'internal';
+  document.querySelectorAll('aside.tally .tally-row .val, aside.tally .item .amt').forEach(el => el.style.visibility = showPrices ? 'visible' : 'hidden');
+}
+
+function formatEur(n) { return '€' + Math.round(n).toLocaleString('en-AU'); }
+function formatAud(n) { return 'A$' + Math.round(n).toLocaleString('en-AU'); }
+
+/* =========================================================
+   MODAL — quote summary + email
+   ========================================================= */
+function buildSummary() {
+  const eng = state.singles['s1'] ? optById[state.singles['s1']] : null;
+  let subtotalEur = eng ? eng.price : 0;
+
+  const lines = [];
+  lines.push(`MAREX 440 — CONFIGURATION QUOTE`);
+  lines.push(`Generated: ${new Date().toLocaleString('en-AU')}`);
+  lines.push('═══════════════════════════════════════════════');
+  lines.push('');
+  lines.push(`CLIENT`);
+  lines.push(`  Name:   ${state.client.first} ${state.client.last}`);
+  lines.push(`  Email:  ${state.client.email}`);
+  lines.push(`  Mobile: ${state.client.mobile}`);
+  lines.push('');
+  lines.push(`BROKER`);
+  lines.push(`  ${state.broker.name} <${state.broker.email}>`);
+  lines.push('');
+  lines.push(`FX RATE: 1 EUR = ${state.fx.toFixed(4)} AUD (spot)`);
+  lines.push('');
+  lines.push('───────────────  CONFIGURATION  ───────────────');
+
+  PRICEBOOK.forEach(sec => {
+    if (sec.type === 'info') return;
+    const picks = (sec.options || []).filter(o => state.selections.has(o.id));
+    if (!picks.length) return;
+    lines.push('');
+    lines.push(`${sec.num}. ${sec.title.toUpperCase()}`);
+    picks.forEach(o => {
+      const price = o.std ? 'Included' : formatEur(o.price);
+      lines.push(`   • ${o.label}  —  ${price}`);
+      if (!o.std && sec.id !== 's1') {} // engine already counted; selection items captured below in subtotal
+    });
+  });
+
+  // Recompute totals (avoid double-counting engine)
+  subtotalEur = 0;
+  state.selections.forEach(id => { const o = optById[id]; if (o && !o.std) subtotalEur += o.price; });
+  if (eng && !eng.std) {} // engine has no std — already in selections
+  // Actually engine IS in selections (we add it on radio change). So subtotalEur is correct.
+
+  const subAud = subtotalEur * state.fx;
+  const duty = state.addDuty ? subAud * 0.05 : 0;
+  const gst  = state.addGst  ? (subAud + duty) * 0.10 : 0;
+  const grand = subAud + duty + gst;
+
+  lines.push('');
+  lines.push('───────────────  PRICING (EX-FACTORY)  ───────────────');
+  lines.push(`  Subtotal:           ${formatEur(subtotalEur)}    /    ${formatAud(subAud)}`);
+  if (state.addDuty) lines.push(`  + Import Duty (5%): ${formatAud(duty)}`);
+  if (state.addGst)  lines.push(`  + GST (10%):        ${formatAud(gst)}`);
+  lines.push(`  TOTAL (AUD):        ${formatAud(grand)}`);
+  lines.push('');
+  lines.push('───────────────  DISCLAIMERS  ───────────────');
+  lines.push('• Pricing is Ex-Factory. Excludes transport from Europe.');
+  lines.push('• AUD figures use the daily spot rate above; subject to FX movement.');
+  lines.push('• Australian Retail pricing (incl. 9% Flagship uplift on EUR list).');
+  lines.push(`• Import Duty / GST: ${state.addDuty || state.addGst ? 'estimates included as toggled above' : 'NOT included'}. Final figures subject to Customs assessment.`);
+  lines.push('');
+  lines.push('Generated by Marex 440 Online Configurator (Wireframe)');
+  lines.push('Flagship International Yacht Brokers');
+
+  return { text: lines.join('\n'), grand };
+}
+
+function openModal() {
+  // Validate required fields
+  if (!state.client.first || !state.client.last || !state.client.email || !state.client.mobile) {
+    alert('Please complete all client fields (First, Last, Email, Mobile) before sending.'); return;
+  }
+  if (!state.singles['s1']) { alert('Please select an Engine & Drivetrain.'); return; }
+  const { text } = buildSummary();
+  document.getElementById('modalBody').innerText = text;
+  document.getElementById('modalSub').innerText = `To: ${state.broker.name} <${state.broker.email}>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function sendMail() {
+  const { text, grand } = buildSummary();
+  const subj = `Marex 440 Quote — ${state.client.first} ${state.client.last} — ${formatAud(grand)}`;
+  const body = text;
+  const cc = 'steve@flagshipinternational.com.au';   // Marex brand manager always cc'd
+  const url = `mailto:${encodeURIComponent(state.broker.email)}` +
+              `?cc=${encodeURIComponent(cc)}` +
+              `&subject=${encodeURIComponent(subj)}` +
+              `&body=${encodeURIComponent(body)}`;
+  window.location.href = url;
+}
+
+// init
+render();
+</script>
+</body>
+</html>
