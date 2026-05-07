@@ -538,14 +538,28 @@ document.getElementById('addGst').addEventListener('change',  e => { state.addGs
 document.getElementById('sectionsRoot').addEventListener('change', e => {
   if (!(e.target.matches('input[type=radio], input[type=checkbox]'))) return;
   const optId = e.target.value;
+  const opt = optById[optId];
   const sec = optToSection[optId];
   if (sec.type === 'single') {
     state.singles[sec.id] = optId;
     sec.options.forEach(o => state.selections.delete(o.id));
     state.selections.add(optId);
   } else {
-    if (e.target.checked) state.selections.add(optId);
-    else state.selections.delete(optId);
+    if (e.target.checked) {
+      state.selections.add(optId);
+      // Mutually-exclusive multi options (Solar 1k vs 1.5k, UW W/B vs RGB, Tender man vs hyd, Gyro CX16 vs SK6, AC 2-cab vs 3-cab)
+      if (opt.conflicts) {
+        opt.conflicts.forEach(cid => {
+          if (state.selections.has(cid)) {
+            state.selections.delete(cid);
+            const cInput = document.querySelector(`#sectionsRoot input[value="${cid}"]`);
+            if (cInput) cInput.checked = false;
+          }
+        });
+      }
+    } else {
+      state.selections.delete(optId);
+    }
   }
   render();
 });
@@ -583,6 +597,28 @@ function isAllowed(opt) {
    RENDER (tally + gating + nav)
    ========================================================= */
 function render() {
+  // Pre-pass: invalid SINGLE selections fall back to the section's std option
+  // (e.g. user selects Hydraulic Stern Platform requiring teak, then removes teak)
+  PRICEBOOK.forEach(sec => {
+    if (sec.type !== 'single') return;
+    const cur = state.singles[sec.id];
+    if (!cur) return;
+    const opt = optById[cur];
+    if (!opt || isAllowed(opt).ok) return;
+    state.selections.delete(cur);
+    const std = sec.options.find(o => o.std);
+    if (std) {
+      state.singles[sec.id] = std.id;
+      state.selections.add(std.id);
+      const stdInput = document.querySelector(`#sectionsRoot input[value="${std.id}"]`);
+      if (stdInput) stdInput.checked = true;
+    } else {
+      delete state.singles[sec.id];
+    }
+    const curInput = document.querySelector(`#sectionsRoot input[value="${cur}"]`);
+    if (curInput) curInput.checked = false;
+  });
+
   // Gate options + reflect state
   document.querySelectorAll('.opt').forEach(row => {
     const optId = row.dataset.optId;
@@ -630,12 +666,7 @@ function render() {
     `</div>`);
   });
   document.getElementById('tallyBody').innerHTML = lines.join('') || '<div class="hint" style="font-size:12px;color:var(--muted)">No upgrades selected yet.</div>';
-
-  // Base hull (engine) is the foundation — show separately at top
-  const eng = state.singles['s1'] ? optById[state.singles['s1']] : null;
-  if (eng) {
-    subtotalEur += eng.price;
-  }
+  // Engine is already counted via the section loop (it's in state.selections and has no std flag).
 
   const fx = state.fx || 1;
   const subAud = subtotalEur * fx;
