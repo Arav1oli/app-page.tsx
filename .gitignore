@@ -4,3 +4,6 @@ node_modules/
 *.db-journal
 .env.local
 .env
+
+# local screenshot tooling (not part of the site)
+shots/
