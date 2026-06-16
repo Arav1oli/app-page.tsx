@@ -99,12 +99,17 @@ export default function LeadDetailClient({
   }
 
   async function handleStatusChange(newStatus: string) {
-    const updated = await fetch(`/api/leads/${lead.id}`, {
+    const previous = lead.status
+    setLead((prev) => ({ ...prev, status: newStatus }))
+    const res = await fetch(`/api/leads/${lead.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
-    }).then((r) => r.json())
-    setLead((prev) => ({ ...prev, status: updated.status }))
+    })
+    if (!res.ok) {
+      // Revert if the server rejected the change.
+      setLead((prev) => ({ ...prev, status: previous }))
+    }
   }
 
   function handleLeadUpdated(updated: Lead) {

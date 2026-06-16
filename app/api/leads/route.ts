@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { pickLeadFields } from "@/lib/leads"
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -39,14 +40,14 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { firstName, lastName, ...rest } = body
+  const data = pickLeadFields(body, false)
 
-  if (!firstName || !lastName) {
+  if (!data.firstName || !data.lastName) {
     return NextResponse.json({ error: "First and last name required" }, { status: 400 })
   }
 
   const lead = await prisma.lead.create({
-    data: { firstName, lastName, ...rest },
+    data: data as any,
     include: { owner: { select: { id: true, name: true, initials: true } } },
   })
 

@@ -47,12 +47,14 @@ export default function ActivityTimeline({
       body: JSON.stringify({ type, content }),
     })
 
+    setSubmitting(false)
+    if (!res.ok) return
+
     const activity = await res.json()
     const newActivity = { ...activity, createdAt: activity.createdAt }
     setActivities((prev) => [newActivity, ...prev])
     onActivityAdded(newActivity)
     setContent("")
-    setSubmitting(false)
   }
 
   return (

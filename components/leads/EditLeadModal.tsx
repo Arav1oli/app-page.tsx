@@ -25,6 +25,7 @@ export default function EditLeadModal({
   onUpdated: (lead: any) => void
   onClose: () => void
 }) {
+  const [error, setError] = useState("")
   const [form, setForm] = useState({
     firstName: lead.firstName, lastName: lead.lastName,
     email: lead.email ?? "", phone: lead.phone ?? "", mobile: lead.mobile ?? "",
@@ -44,6 +45,11 @@ export default function EditLeadModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError("")
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      setError("First and last name are required.")
+      return
+    }
     setSaving(true)
     const res = await fetch(`/api/leads/${lead.id}`, {
       method: "PUT",
@@ -58,6 +64,10 @@ export default function EditLeadModal({
       }),
     })
     setSaving(false)
+    if (!res.ok) {
+      setError("Failed to save changes.")
+      return
+    }
     const updated = await res.json()
     onUpdated(updated)
   }
@@ -74,6 +84,10 @@ export default function EditLeadModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+          )}
+
           <fieldset>
             <legend className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Contact Info</legend>
             <div className="grid grid-cols-2 gap-3">

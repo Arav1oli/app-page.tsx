@@ -30,14 +30,31 @@ export default function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) 
   const [defaultStatus, setDefaultStatus] = useState("new")
 
   const handleStatusChange = useCallback(async (id: string, newStatus: string) => {
+    let previousStatus: string | undefined
     setLeads((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
+      prev.map((l) => {
+        if (l.id === id) {
+          previousStatus = l.status
+          return { ...l, status: newStatus }
+        }
+        return l
+      })
     )
-    await fetch(`/api/leads/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
-    })
+    try {
+      const res = await fetch(`/api/leads/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (!res.ok) throw new Error("Update failed")
+    } catch {
+      // Roll back the optimistic move so the board reflects reality.
+      setLeads((prev) =>
+        prev.map((l) =>
+          l.id === id && previousStatus ? { ...l, status: previousStatus } : l
+        )
+      )
+    }
   }, [])
 
   const handleLeadCreated = useCallback((lead: Lead) => {

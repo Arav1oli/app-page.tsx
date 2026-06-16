@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { pickLeadFields } from "@/lib/leads"
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -27,10 +28,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
+  const data = pickLeadFields(body, true)
+
+  const existing = await prisma.lead.findUnique({ where: { id: params.id } })
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const lead = await prisma.lead.update({
     where: { id: params.id },
-    data: body,
+    data,
     include: { owner: { select: { id: true, name: true, initials: true } } },
   })
 
