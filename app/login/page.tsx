@@ -86,10 +86,6 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
-
-        <p className="text-xs text-gray-400 mt-6 text-center">
-          Demo password: <span className="font-mono font-semibold">demo1234</span>
-        </p>
       </div>
     </div>
   )

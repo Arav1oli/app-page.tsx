@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  // LOCAL: SQLite — swap to "postgresql" for production (Neon, Supabase, etc.)
-  provider = "sqlite"
+  // Production: hosted Postgres (Neon, Supabase, Vercel Postgres, etc.).
+  // DATABASE_URL must be a postgresql:// connection string.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
