@@ -143,16 +143,18 @@ body.no-entrance .hero h1 .wline:nth-child(2) span{animation-delay:.42s}
 @keyframes wRise{to{transform:translateY(0)}}
 .hero h1{transition:transform .25s cubic-bezier(.2,.8,.2,1);color:#fff;text-shadow:0 4px 44px rgba(6,24,47,.55),0 1px 8px rgba(6,24,47,.35);font-size:clamp(3.6rem,12.5vw,9rem);font-weight:300;line-height:.98;letter-spacing:.005em;margin-top:16px}
 .hero h1 em{font-style:italic;color:var(--champagne)}
-.hero .eyebrow,.hero .strap,.hero .hline,.hero-cta{opacity:0;animation:rise 1.1s var(--ease) 4.2s forwards}
+.hero .eyebrow,.hero .strap,.hero .hline,.hero-cta,.hero-search{opacity:0;animation:rise 1.1s var(--ease) 4.2s forwards}
 .hero .hline{animation:hdraw 1.4s var(--ease) 4.2s forwards}
 body.arrived .hero .eyebrow{animation:rise 1.1s var(--ease) 1.6s forwards}
 body.arrived .hero .hline{animation:hdraw 1.4s var(--ease) 2.15s forwards}
 body.arrived .hero .strap{animation:rise 1.1s var(--ease) 2.25s forwards}
 body.arrived .hero-cta{animation:rise 1.1s var(--ease) 2.45s forwards}
+body.arrived .hero-search{animation:rise 1.1s var(--ease) 2.65s forwards}
 body.no-entrance .hero .eyebrow{animation:rise 1.1s var(--ease) .1s forwards}
 body.no-entrance .hero .hline{animation:hdraw 1.4s var(--ease) .6s forwards}
 body.no-entrance .hero .strap{animation:rise 1.1s var(--ease) .7s forwards}
 body.no-entrance .hero-cta{animation:rise 1.1s var(--ease) .9s forwards}
+body.no-entrance .hero-search{animation:rise 1.1s var(--ease) 1.05s forwards}
 .hero .strap{color:#DCE4EE;text-shadow:0 2px 18px rgba(6,24,47,.85),0 1px 4px rgba(6,24,47,.6);font-size:clamp(.98rem,1.6vw,1.18rem);letter-spacing:.05em;max-width:44ch;margin-top:26px;transform:translateY(26px)}
 .hero .eyebrow{transform:translateY(20px)}
 .hero .hline{width:0;height:1px;background:var(--gold);margin:28px 0 30px}
@@ -380,6 +382,35 @@ form.console{display:grid;grid-template-columns:repeat(4,1fr);gap:30px 28px;back
 .rev-cta:hover{background:rgba(201,161,88,.12);border-color:var(--gold);gap:14px}
 .rev-card .rev-g{margin-top:auto;display:flex;align-items:center;gap:7px;color:#7d8da0;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;padding-top:6px;text-decoration:none;transition:color .3s}
 .rev-card .rev-g:hover{color:var(--gold-bright)}
+
+/* ===== HERO QUICK SEARCH ===== */
+.hero-search{display:flex;align-items:stretch;margin-top:34px;max-width:700px;border:1px solid rgba(244,239,230,.22);border-radius:999px;background:rgba(6,24,47,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);overflow:hidden;transform:translateY(20px)}
+.hero-search select{appearance:none;-webkit-appearance:none;background:transparent;border:0;color:var(--champagne);font-family:'DM Sans',sans-serif;font-size:.78rem;letter-spacing:.05em;padding:16px 36px 16px 24px;flex:1 1 0;min-width:0;cursor:pointer;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' stroke='%23C9A158' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+.hero-search select:focus-visible{outline-offset:-3px}
+.hero-search select option{color:var(--abyss);background:#fff}
+.hero-search .hs-div{width:1px;background:rgba(244,239,230,.16);margin:10px 0}
+.hero-search button{border:0;cursor:pointer;background:linear-gradient(135deg,var(--gold-bright),var(--gold));color:var(--abyss);font-family:'DM Sans',sans-serif;font-weight:500;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;padding:0 34px;transition:filter .35s}
+.hero-search button:hover{filter:brightness(1.08)}
+@media(max-width:760px){.hero-search{flex-direction:column;border-radius:22px}.hero-search .hs-div{width:auto;height:1px;margin:0 20px}.hero-search button{padding:16px}}
+
+/* ===== STATS BAND ===== */
+.stats-band{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;margin-top:clamp(40px,5vw,60px);padding-top:38px;border-top:1px solid rgba(11,37,69,.12)}
+.stats-band .num{display:block;font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,3.2rem);color:var(--navy);line-height:1}
+.stats-band .num small{font-size:.5em;color:var(--gold);vertical-align:.28em;margin-left:2px}
+.stats-band .lbl{display:block;margin-top:10px;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.26em;text-transform:uppercase;color:rgba(11,37,69,.55)}
+@media(max-width:760px){.stats-band{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== TEAM BAND ===== */
+.team-band{background:var(--paper);padding:clamp(80px,10vw,130px) 0}
+.team-in{display:grid;grid-template-columns:1.4fr auto;gap:clamp(30px,6vw,80px);align-items:center}
+.team-band h2{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:clamp(1.9rem,3.6vw,2.9rem);color:var(--navy);margin:14px 0 18px;line-height:1.15}
+.team-band h2 em{font-style:italic;color:var(--gold)}
+.team-band .team-copy{color:rgba(11,37,69,.72);line-height:1.75;max-width:54ch}
+.team-links{display:flex;flex-direction:column;gap:14px;align-items:stretch;text-align:center}
+@media(max-width:860px){.team-in{grid-template-columns:1fr}.team-links{flex-direction:row;flex-wrap:wrap}}
+
+/* newsletter error note */
+.join-err{color:#B4552D;font-size:.82rem;margin-top:12px}
 .rev-card .rev-g svg{width:14px;height:14px}
 
 footer{background:var(--abyss);color:#94A4B8;border-top:1px solid rgba(201,161,88,.18);padding:clamp(70px,9vw,100px) 0 0;font-size:.88rem}
@@ -531,6 +562,25 @@ footer a:hover{color:var(--gold-bright)}
       <a class="btn btn-gold" href="https://flagshipinternational.com.au/boatlistings">Yachts for Sale</a>
       <a class="btn btn-hair" href="https://flagshipinternational.com.au/sell">Sell with Us</a>
     </div>
+    <form class="hero-search" action="https://flagshipinternational.com.au/boatlistings" method="get" aria-label="Quick yacht search">
+      <select name="condition" aria-label="New or pre-owned">
+        <option value="">All Vessels</option>
+        <option value="1">Pre-Owned</option>
+        <option value="2">New</option>
+      </select>
+      <span class="hs-div" aria-hidden="true"></span>
+      <select name="length" aria-label="Length">
+        <option value="">Any Length</option>
+        <option>0 - 10m</option><option>10 - 15m</option><option>15m +</option>
+      </select>
+      <span class="hs-div" aria-hidden="true"></span>
+      <select name="price" aria-label="Price">
+        <option value="">Any Price</option>
+        <option>$POA - $100,000</option><option>$100,000 - $200,000</option>
+        <option>$200,000 - $500,000</option><option>$500,000 - $1,000,000</option><option>$1,000,000 +</option>
+      </select>
+      <button type="submit">Search</button>
+    </form>
   </div>
   <a class="scroll-cue" href="#statement"><span>Explore</span><span class="dot" aria-hidden="true"></span></a>
   <div class="ribbon" aria-hidden="true">
@@ -548,6 +598,12 @@ footer a:hover{color:var(--gold-bright)}
       <div>Head Office<span>Rose Bay Marina</span></div>
       <div>Sydney Harbour<span>Point Piper Marina</span></div>
       <div>Queensland<span>Gold Coast City Marina</span></div>
+    </div>
+    <div class="stats-band reveal d2">
+      <div><span class="num" id="statFleet">120+</span><span class="lbl">Vessels Listed</span></div>
+      <div><span class="num">6</span><span class="lbl">New-Build Dealerships</span></div>
+      <div><span class="num">3</span><span class="lbl">Marina Locations</span></div>
+      <div><span class="num">5.0<small>&#9733;</small></span><span class="lbl">Google Rating</span></div>
     </div>
   </div>
 </section>
@@ -809,6 +865,21 @@ footer a:hover{color:var(--gold-bright)}
   </div>
 </section>
 
+<!-- TEAM -->
+<section class="team-band" id="team">
+  <div class="wrap team-in">
+    <div class="reveal">
+      <span class="eyebrow" style="color:var(--gold)">Your Brokers</span>
+      <h2>Guided by people who <em>know these waters</em></h2>
+      <p class="team-copy">From first inspection to survey, sea trial and final handover &mdash; a dedicated Flagship broker at Rose Bay, Point Piper or the Gold Coast walks every step with you.</p>
+    </div>
+    <div class="team-links reveal d1">
+      <a class="btn btn-gold" href="https://flagshipinternational.com.au/about/meet-the-team">Meet the Team</a>
+      <a class="btn btn-navy" href="https://flagshipinternational.com.au/about/yacht-buyers-agent">Yacht Buyer&rsquo;s Agent</a>
+    </div>
+  </div>
+</section>
+
 <!-- JOIN -->
 <!-- GOOGLE REVIEWS -->
 <section class="reviews" id="reviews">
@@ -920,6 +991,8 @@ const els = {
   const o=document.createElement("option"); o.textContent=m; els.make.appendChild(o);
 });
 els.note.textContent = FLEET.length + " vessels live";
+const statFleet = document.getElementById("statFleet");
+if (statFleet) statFleet.textContent = FLEET.length + "+";
 let filtered = [], shown = 0; const PAGE = 12;
 function inBracket(v, br){
   if(!br) return true;
@@ -1176,12 +1249,31 @@ function paintReviews(list, avg, count){
   }
 })();
 
-// newsletter (UI demo - point form action at the Campaign Monitor subscribe endpoint on integration)
+// newsletter — posts to the Flagship n8n webhook (type: newsletter-signup)
 document.getElementById('joinForm').addEventListener('submit', ev => {
   ev.preventDefault();
-  const em = ev.target.email.value.trim();
-  if (!em || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { ev.target.email.focus(); return; }
-  document.getElementById('join').classList.add('sent');
+  const form = ev.target;
+  const em = form.email.value.trim();
+  if (!em || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { form.email.focus(); return; }
+  const btn = form.querySelector('button');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const err = document.getElementById('joinErr');
+  if (err) err.remove();
+  fetch('https://adrianravasio2.app.n8n.cloud/webhook/8021e55c-73d1-495d-bf64-b5168597c741', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'newsletter-signup', email: em, pageUrl: location.href, userAgent: navigator.userAgent || '' })
+  }).then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    document.getElementById('join').classList.add('sent');
+  }).catch(() => {
+    btn.disabled = false; btn.textContent = orig;
+    const n = document.createElement('p');
+    n.id = 'joinErr'; n.className = 'join-err';
+    n.textContent = 'Something went wrong — please try again, or email marley@flagshipinternational.com.au.';
+    form.after(n);
+  });
 });
 </script>
 
