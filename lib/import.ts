@@ -154,7 +154,15 @@ export function parseCsvToMatrix(text: string, delimiter?: string): { matrix: st
       continue
     }
 
-    if (ch === '"') {
+    // A quote only OPENS a quoted section at the start of a field. Mid-field it
+    // is a literal character.
+    //
+    // This matters enormously for yacht data, where inch and feet marks are
+    // everywhere: `Draft 4" keel`, `Sea Ray 5'6"`, `42" screen`. Treating such a
+    // quote as an opening delimiter makes the parser swallow every following
+    // row until it finds another quote — silently deleting an arbitrary run of
+    // contacts from the middle of an import, with no error and no warning.
+    if (ch === '"' && field === "") {
       inQuotes = true
       continue
     }
@@ -174,6 +182,16 @@ export function parseCsvToMatrix(text: string, delimiter?: string): { matrix: st
       continue
     }
     field += ch
+  }
+
+  // An unterminated quote means the file is malformed and every row after the
+  // stray quote has been absorbed into one cell. Failing loudly is the only
+  // safe option — returning a plausible-looking matrix imports corrupt data.
+  if (inQuotes) {
+    throw new Error(
+      `Malformed CSV: a quoted field opened near line ${rowStartLine} was never closed. ` +
+        `Everything after it was read as a single value. Check for an unbalanced " in the file.`,
+    )
   }
 
   // Flush whatever is left on the last (unterminated) line.
@@ -690,6 +708,15 @@ export function normaliseStatus(raw: string | null | undefined, fallback: LeadSt
   const direct = STATUS_ALIASES[key]
   if (direct) return { status: direct, recognised: true }
 
+  // A NEGATED label contains its own positive substring, so the loose
+  // substring matching below would read "Not Qualified" as qualified and
+  // "Never contacted" as contacted — quietly moving dead leads into the
+  // active pipeline for brokers to chase. Bail out to the fallback instead,
+  // and report it as unrecognised so the raw label is preserved in notes.
+  if (/^(not|non|never|un|no)\b/.test(key)) {
+    return { status: fallback, recognised: false }
+  }
+
   // Monday labels are often prefixed/suffixed ("Stage 2 - Contacted").
   for (const status of LEAD_STATUSES) {
     if (key.includes(status)) return { status, recognised: true }
@@ -888,20 +915,29 @@ export function isValidEmail(value: string): boolean {
   return EMAIL_RE.test(value.trim())
 }
 
-/** Splits a display name on the FIRST space; single-word names get an empty lastName. */
-export function splitName(fullName: string): { firstName: string; lastName: string } {
+/**
+ * Splits a display name on the FIRST space.
+ *
+ * A missing surname returns NULL, not "". 84% of the real contact database has
+ * no surname, so writing empty strings would defeat the nullable column and
+ * make "has no surname" unqueryable (`= ''` and `IS NULL` are different rows).
+ */
+export function splitName(fullName: string): { firstName: string; lastName: string | null } {
   const cleaned = fullName.replace(/\s+/g, " ").trim()
-  if (!cleaned) return { firstName: "", lastName: "" }
+  if (!cleaned) return { firstName: "", lastName: null }
 
   // "Ashworth, Richard" -> "Richard Ashworth"
   const comma = cleaned.match(/^([^,]+),\s*(.+)$/)
   if (comma) {
-    return { firstName: comma[2].trim(), lastName: comma[1].trim() }
+    return { firstName: comma[2].trim(), lastName: comma[1].trim() || null }
   }
 
   const space = cleaned.indexOf(" ")
-  if (space === -1) return { firstName: cleaned, lastName: "" }
-  return { firstName: cleaned.slice(0, space), lastName: cleaned.slice(space + 1).trim() }
+  if (space === -1) return { firstName: cleaned, lastName: null }
+  return {
+    firstName: cleaned.slice(0, space),
+    lastName: cleaned.slice(space + 1).trim() || null,
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -911,7 +947,8 @@ export function splitName(fullName: string): { firstName: string; lastName: stri
 /** Shape handed to prisma.lead.create({ data }) — plus the unresolved owner name. */
 export type PreparedLead = {
   firstName: string
-  lastName: string
+  /** NULL when the source had no surname — the common case, not an edge case. */
+  lastName: string | null
   email: string | null
   phone: string | null
   mobile: string | null
@@ -1019,9 +1056,21 @@ function nullIfBlank(value: string | undefined): string | null {
   return v === "" ? null : v
 }
 
-function duplicateKey(email: string | null, firstName: string, lastName: string): { key: string; matchedBy: "email" | "name" } | null {
+function duplicateKey(
+  email: string | null,
+  firstName: string,
+  lastName: string | null,
+): { key: string; matchedBy: "email" | "name" } | null {
   if (email) return { key: `e:${email.trim().toLowerCase()}`, matchedBy: "email" }
-  const name = `${firstName} ${lastName}`.replace(/\s+/g, " ").trim().toLowerCase()
+  // Filter before joining: interpolating a null surname yields the literal
+  // "tom null", which would collide every surname-less "tom" into one another.
+  const name = [firstName, lastName].filter(Boolean).join(" ").replace(/\s+/g, " ").trim().toLowerCase()
+
+  // NEVER dedupe on a single-token name. 84% of real contacts have no surname
+  // and 3.4% have no email, so for roughly a thousand records the whole key
+  // would be a bare first name — merging every unrelated "John" into one lead
+  // and silently discarding the rest. A lone first name is not an identity.
+  if (name && !name.includes(" ")) return null
   if (!name) return null
   return { key: `n:${name}`, matchedBy: "name" }
 }
@@ -1106,8 +1155,10 @@ export function prepareImport(input: PrepareImportInput): ImportPlan {
     }
 
     // --- name ----------------------------------------------------------
+    // lastName stays NULL when absent — see splitName. Most real contacts
+    // have no surname, and "" would be stored as a value rather than a gap.
     let firstName = first("firstName") ?? ""
-    let lastName = first("lastName") ?? ""
+    let lastName: string | null = first("lastName")
 
     if (!firstName && !lastName) {
       const full = first("fullName")
@@ -1116,7 +1167,7 @@ export function prepareImport(input: PrepareImportInput): ImportPlan {
         firstName = split.firstName
         lastName = split.lastName
       }
-    } else if (!firstName) {
+    } else if (!firstName && lastName) {
       // Only a last name column had content — treat it as the display name.
       const split = splitName(lastName)
       firstName = split.firstName
@@ -1148,7 +1199,7 @@ export function prepareImport(input: PrepareImportInput): ImportPlan {
       const split = splitName(local)
       firstName = split.firstName
       lastName = split.lastName
-      const derived = `${firstName} ${lastName}`.trim()
+      const derived = [firstName, lastName].filter(Boolean).join(" ")
       warnings.push({ field: "firstName", message: `No name column had a value — derived "${derived}" from the email address` })
     }
 
@@ -1324,7 +1375,8 @@ export function resolveOwnerId(ownerName: string | null | undefined, users: Impo
 /** The exact object to hand to prisma.lead.create({ data }). */
 export type LeadCreateData = {
   firstName: string
-  lastName: string
+  /** NULL when the source had no surname — the common case, not an edge case. */
+  lastName: string | null
   email: string | null
   phone: string | null
   mobile: string | null

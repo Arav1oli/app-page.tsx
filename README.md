@@ -54,10 +54,10 @@ This also runs `prisma generate` automatically (there is a `postinstall` hook in
 Copy the example file to create your real one:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Then open `.env.local` and set a real value for `NEXTAUTH_SECRET`. This is the
+Then open `.env` and set a real value for `NEXTAUTH_SECRET`. This is the
 key that signs the login cookies — anything long and random will do. Generate
 one with:
 
@@ -65,7 +65,7 @@ one with:
 openssl rand -base64 32
 ```
 
-Paste the result between the quotes. Your `.env.local` should end up looking
+Paste the result between the quotes. Your `.env` should end up looking
 roughly like this:
 
 ```
@@ -74,7 +74,7 @@ NEXTAUTH_SECRET="8Xk2p...the long random string you just generated..."
 NEXTAUTH_URL="http://localhost:3000"
 ```
 
-`.env.local` is listed in `.gitignore`, so it will never be committed or shared.
+`.env` is listed in `.gitignore`, so it will never be committed or shared.
 Never paste a real secret into `.env.example`.
 
 ### 3. Create the database
@@ -176,7 +176,7 @@ All five seeded accounts share the password **`demo1234`**.
 │   ├── schema.prisma           The database structure (User, Lead, Activity)
 │   └── seed.ts                 Sample data
 │
-├── .env.example                Template for your .env.local
+├── .env.example                Template for your .env
 ├── DEPLOYMENT.md               How to put this on the internet
 └── README.md                   This file
 ```
