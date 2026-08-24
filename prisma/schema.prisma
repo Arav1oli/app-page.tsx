@@ -1,84 +1,309 @@
+// ---------------------------------------------------------------------------
+// Yacht CRM — Prisma schema
+//
+// Shaped against a real HubSpot audit (Aug 2026), NOT the original screenshot:
+//   29,339 contacts · 24,985 emails · 13,637 calls · 8,985 notes
+//   583 tasks · 431 meetings · 27 owner records (18 active / 9 deactivated)
+//
+// Guiding principles baked into this file:
+//   1. REAL DATA IS DIRTY. Every normalised column is paired with a *Raw
+//      column holding the verbatim source string. We never discard input.
+//   2. ALMOST NOTHING IS REQUIRED. lastName is blank on 84% of contacts,
+//      email on 3.4%, owner on 54%. Requiring a column = cannot import.
+//   3. SQLITE HAS NO ENUMS. Enum-ish columns are `String` with the allowed
+//      values documented inline, matching the existing house style.
+// ---------------------------------------------------------------------------
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  // LOCAL: SQLite — swap to "postgresql" for production (Neon, Supabase, etc.)
+  // LOCAL: SQLite.
+  //
+  // PRODUCTION: swap `provider` to "postgresql" (Neon / Supabase / RDS) and
+  // point DATABASE_URL at the connection string. Nothing else in this schema
+  // needs to change — no native enums, no arrays, no JSON columns are used,
+  // precisely so this swap stays a one-line change. On Postgres you may
+  // additionally want to convert the documented enum-ish Strings into real
+  // enums and add GIN/trigram indexes for the free-text search columns.
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
+// ---------------------------------------------------------------------------
+// User — staff. Maps 1:1 to a HubSpot "owner" record.
+// ---------------------------------------------------------------------------
 model User {
-  id         String     @id @default(cuid())
-  name       String
-  email      String     @unique
-  password   String
-  role       String     @default("agent") // "admin" | "agent"
-  initials   String     @default("")
-  createdAt  DateTime   @default(now())
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+  role     String @default("agent") // "admin" | "agent"
+  initials String @default("")
+
+  // The audit found 27 owners: 18 assignable, 9 deactivated. Deactivated
+  // owners must still resolve (historic leads and activities point at them)
+  // but must NOT appear in assignment dropdowns. Filter on isActive, never
+  // delete the row.
+  isActive Boolean @default(true)
+
+  // HubSpot owner id (numeric string, e.g. "12345678"). Nullable because the
+  // 5 built-in demo users have no HubSpot counterpart. Unique so a re-run of
+  // the importer upserts rather than duplicating.
+  externalId String? @unique
+
+  createdAt DateTime @default(now())
 
   leads      Lead[]     @relation("LeadOwner")
   activities Activity[]
+
+  @@index([isActive])
 }
 
+// ---------------------------------------------------------------------------
+// Lead — a HubSpot contact.
+//
+// NOTE ON NAMES — READ BEFORE RENDERING A LEAD ANYWHERE:
+// Only 4,586 of 29,339 contacts (16%) have a surname. `lastName` is therefore
+// NULLABLE and the UI must never assume otherwise. There is deliberately no
+// stored `displayName` column: it would be a third copy of data that is
+// already in two columns, would drift the moment either half is edited, and
+// SQLite cannot maintain it as a generated column across the Postgres swap.
+// Instead, derive it at the edge with a single shared helper, e.g.
+//
+//   displayName(l)  ->  [l.firstName, l.lastName].filter(Boolean).join(" ")
+//                       || l.email || l.phone || "Unknown contact"
+//   initials(l)     ->  ((l.firstName?.[0] ?? "") + (l.lastName?.[0] ?? ""))
+//                       .toUpperCase() || "?"
+//
+// Sorting "by name" must sort on firstName first and treat lastName as a
+// secondary key (see @@index([lastName, firstName]) below) — sorting on
+// lastName alone buckets 84% of the database into a single NULL group.
+// ---------------------------------------------------------------------------
 model Lead {
-  id             String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  // Pipeline status (Monday board columns)
-  status         String    @default("new")
+  // HubSpot contact id. Unique -> the importer is idempotent and re-runnable.
+  externalId String? @unique
+
+  // --- Pipeline -----------------------------------------------------------
+  status   String @default("new")
   // new | contacted | qualified | proposal | won | lost
 
-  priority       String    @default("medium")
+  priority String @default("medium")
   // low | medium | high
 
-  // Core contact info
-  firstName      String
-  lastName       String
-  email          String?
-  phone          String?
-  mobile         String?
+  // HubSpot lifecycle stage, kept separate from our own pipeline `status`
+  // because the two vocabularies do not line up and both are reported on.
+  lifecycleStage String?
+  // subscriber | lead | marketingqualifiedlead | salesqualifiedlead
+  // | opportunity | customer | evangelist | other
 
-  // Company
-  company        String?
-  jobTitle       String?
-  website        String?
+  // --- Core contact -------------------------------------------------------
+  firstName String
+  lastName  String? // 84% blank — see the note above. NEVER make this required.
+  email     String? // 96.6% present
+  phone     String? // 61.8% present
+  mobile    String? // 55.1% present
 
-  // Lead metadata
-  leadSource     String?
-  // referral | website | cold_call | social | event | other
+  // --- Company (kept, but low value) --------------------------------------
+  // The 9,592 HubSpot company records were auto-created junk and are NOT
+  // modelled as a table. These stay as flat optional strings on the contact.
+  company  String?
+  jobTitle String?
+  website  String?
 
-  notes          String?
-  budget         String?
+  // --- Source -------------------------------------------------------------
+  // `leadSource` is the canonical coarse source bucket (this is the "source"
+  // field; the column keeps its original name so existing UI keeps working).
+  leadSource String?
+  // referral | website | cold_call | social | event | boat_show | import | other
+
+  // Free text detail behind the bucket: campaign name, referrer, show stand,
+  // "looking_for" landing page, etc.
+  sourceDetail String?
+
+  // --- Qualification ------------------------------------------------------
+  notes String?
+
+  // HubSpot `looking_for` — 37.6% overall, 93% on recent contacts. Free text,
+  // ~500 distinct values. Doubles as a vessel-of-interest AND a campaign tag
+  // ("V44 enquiry", "SCIBS 2025"). Column keeps its existing name.
   vesselInterest String?
 
-  // Address
-  address        String?
-  city           String?
-  country        String?
+  // HubSpot `currently_owns` — 31.7% filled and extremely dirty: "none", "no",
+  // "nil", "na", ",", "-" all mean "owns nothing". Raw text preserved here.
+  currentlyOwns String?
 
-  // Social
-  linkedin       String?
+  // Tri-state normalisation of the above so rollups don't have to re-parse
+  // the junk vocabulary every query: true = owns a boat, false = explicitly
+  // stated they own nothing, null = unknown / not asked.
+  ownsBoat Boolean?
 
-  // Dates
+  // --- Budget (26.4% overall, 92% on recent) ------------------------------
+  // Source is HubSpot's free-text "budget (Cloned)" property: 6 intended
+  // buckets plus 300+ dirty variants ("$1m- $2m", "1-2 mil", "approx 2m").
+  budgetBand String?
+  // under_500k | 500k_1m | 1m_2m | 2m_3m | 3m_5m | 5m_plus
+  // (null when the raw value could not be confidently classified)
+
+  budgetRaw String? // verbatim source string, never overwritten
+
+  // LEGACY: pre-audit free-text budget column. Still read by existing UI, so
+  // it is retained and mirrored from budgetRaw on import. DEPRECATED — new
+  // code should read budgetBand for logic and budgetRaw for display.
+  budget String?
+
+  // --- Timeframe (16.1%) --------------------------------------------------
+  // Raw examples: "just browsing for now", "late 2024", "2026 or after",
+  // "gathering information", "evaluating and comparing models".
+  timeframe String?
+  // browsing | researching | comparing | 0_3_months | 3_6_months
+  // | 6_12_months | 12_months_plus | unknown
+
+  timeframeRaw String? // verbatim source string
+
+  // --- Vessel spec --------------------------------------------------------
+  // The ONLY clean enum in the whole HubSpot account (1.9% filled).
+  boatType String?
+  // sports_cruiser | flybridge_cruiser | sailing_yacht
+  // | full_displacement | semi_displacement | superyacht
+
+  boatYear Int? // 0.5% filled
+  boatSize Int? // 4.1% filled — length in FEET
+
+  // --- Location -----------------------------------------------------------
+  // 58.5% filled and filthy: "nsw" / "NSW" / "New South Wales" / "qld" /
+  // "queensland", plus — critically — boat-show names stored in the state
+  // field: "scib" (542 rows) and "sibs" (83 rows). The importer lifts those
+  // out into metAtShow and leaves stateRegion null.
+  stateRegion String?
+  // AU: nsw | vic | qld | wa | sa | tas | nt | act
+  // NZ: nz   Overseas: intl   (null = unknown / unparseable)
+
+  stateRaw String? // verbatim source string, including "scib"/"sibs"
+
+  // Boat show the contact was met at, rescued from the state field or set by
+  // a show-import. e.g. "scibs" (Sanctuary Cove) | "sibs" (Sydney) | "mibs".
+  metAtShow String?
+
+  address String?
+  city    String? // only 2% filled
+  country String? // only 2% filled — do not build UI that depends on it
+
+  linkedin String?
+
+  // --- Hygiene ------------------------------------------------------------
+  // Staff mailboxes (@flagshipinternational.com.au) exist as contacts and
+  // carry 1,000–3,600 bogus BCC-to-CRM "notes" each. Flagged, not deleted, so
+  // every dashboard/rollup/count can do `where: { isInternal: false }`.
+  isInternal Boolean @default(false)
+
+  // --- Dates --------------------------------------------------------------
   lastContactedAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  // Relations
-  ownerId        String?
-  owner          User?     @relation("LeadOwner", fields: [ownerId], references: [id])
-  activities     Activity[]
+  // --- Relations ----------------------------------------------------------
+  // 54% of contacts have NO owner. Nullable, and list views must render an
+  // "Unassigned" state rather than crashing.
+  ownerId    String?
+  owner      User?      @relation("LeadOwner", fields: [ownerId], references: [id])
+  activities Activity[]
+
+  // --- Indexes ------------------------------------------------------------
+  // Mandatory at 29k rows. Every one of these backs a real query path.
+  @@index([status]) // pipeline board / kanban columns
+  @@index([ownerId]) // "my leads" + per-owner rollups
+  @@index([updatedAt]) // default list sort (recently touched first)
+  @@index([email]) // dedupe on import + search-by-email
+  @@index([lastContactedAt]) // "not contacted in N days" follow-up queues
+  @@index([isInternal]) // exclude staff mailboxes from every rollup
+  @@index([status, ownerId]) // the most common combined filter on the board
+  @@index([lastName, firstName]) // name sort; see the naming note above
+  @@index([budgetBand]) // segment filters
+  @@index([stateRegion]) // segment filters
+  @@index([metAtShow]) // boat-show campaign lists
 }
 
+// ---------------------------------------------------------------------------
+// Activity — the unified timeline: notes, emails, calls, tasks, meetings.
+//
+// TIMELINE SORT KEY: `occurredAt`, NOT `createdAt`.
+// HubSpot's `hs_timestamp` is when the thing HAPPENED; `createdAt` is when the
+// row was written. They diverge by months on imported history and by days on
+// logged-after-the-fact calls. Every timeline query must ORDER BY occurredAt.
+// ---------------------------------------------------------------------------
 model Activity {
-  id        String   @id @default(cuid())
-  type      String   // note | call | email | meeting | task
-  content   String
+  id String @id @default(cuid())
+
+  // HubSpot engagement id — makes the importer idempotent.
+  externalId String? @unique
+
+  type String
+  // note | email | call | task | meeting
+
+  // Short one-line summary: email subject, call title, task name, meeting
+  // name. Nullable — plenty of HubSpot engagements have no subject.
+  subject String?
+
+  // Plain-text body / fallback rendering. Kept required to preserve the
+  // existing contract with the UI (use "" when there is only HTML).
+  content String
+
+  // Raw HTML body. Call bodies in particular are HTML and hold the richest
+  // qualification data in the entire dataset (budget, vessel, timeframe often
+  // only appear here). MUST be sanitised before rendering — never
+  // dangerouslySetInnerHTML this straight from the DB.
+  bodyHtml String?
+
+  // EMAIL only: outgoing (17,881) | incoming (7,104)
+  direction String?
+
+  // CALL: Left voicemail | Connected | No answer | Wrong number | Busy
+  //       | Left live message
+  // MEETING: e.g. Scheduled | Completed | No show | Cancelled
+  outcome String?
+
+  // EMAIL: SENT | BOUNCED | FAILED | SCHEDULED
+  // TASK:  NOT_STARTED | IN_PROGRESS | COMPLETED | WAITING | DEFERRED
+  status String?
+
+  // TASK only: LOW | MEDIUM | HIGH
+  priority String?
+
+  // TASK only: due date. MEETING reuses occurredAt as its start time.
+  dueAt DateTime?
+
+  // MEETING only.
+  endAt    DateTime?
+  location String?
+
+  // TASK only: TODO | CALL | EMAIL
+  taskType String?
+
+  // When it actually happened (HubSpot hs_timestamp). THE timeline sort key.
+  occurredAt DateTime @default(now())
+
+  // When we wrote the row. Import artefact — do not sort timelines on this.
   createdAt DateTime @default(now())
 
-  leadId    String
-  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  // BCC-to-CRM noise from staff mailboxes. Excluded from rollups and,
+  // usually, from the visible timeline.
+  isInternal Boolean @default(false)
 
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id])
+
+  // --- Indexes ------------------------------------------------------------
+  @@index([leadId, occurredAt]) // THE timeline query — required
+  @@index([occurredAt]) // global recent-activity feed
+  @@index([type]) // per-type filters and counts
+  @@index([userId]) // per-rep activity rollups
+  @@index([isInternal]) // exclude BCC noise
+  @@index([dueAt]) // task queues / overdue lists
 }
