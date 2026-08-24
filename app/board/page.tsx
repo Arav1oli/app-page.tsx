@@ -11,21 +11,17 @@ export default async function BoardPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect("/login")
 
-  const leads = await prisma.lead.findMany({
-    include: { owner: { select: { id: true, name: true, initials: true } } },
-    orderBy: { updatedAt: "desc" },
+  // Only the (small) user list is loaded here. The board itself is fetched from
+  // /api/leads/board, which returns true per-column totals plus the first page
+  // of cards per column — never every lead.
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, initials: true },
+    orderBy: { name: "asc" },
   })
-
-  const serialized = leads.map((l) => ({
-    ...l,
-    createdAt: l.createdAt.toISOString(),
-    updatedAt: l.updatedAt.toISOString(),
-    lastContactedAt: l.lastContactedAt?.toISOString() ?? null,
-  }))
 
   return (
     <AppShell>
-      <KanbanBoard initialLeads={serialized} />
+      <KanbanBoard users={users} />
     </AppShell>
   )
 }

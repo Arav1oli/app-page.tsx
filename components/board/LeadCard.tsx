@@ -2,20 +2,7 @@
 import Link from "next/link"
 import { Phone, Mail, Building2 } from "lucide-react"
 import { cn, PRIORITY_CONFIG, STATUS_CONFIG } from "@/lib/utils"
-import { formatDistanceToNow } from "date-fns"
-
-type Lead = {
-  id: string
-  firstName: string
-  lastName: string
-  email?: string | null
-  phone?: string | null
-  company?: string | null
-  status: string
-  priority: string
-  updatedAt: string
-  owner?: { name: string; initials: string } | null
-}
+import { Lead, displayName } from "@/components/lead-types"
 
 export default function LeadCard({ lead, onStatusChange }: {
   lead: Lead
@@ -36,7 +23,7 @@ export default function LeadCard({ lead, onStatusChange }: {
             href={`/leads/${lead.id}`}
             className="font-semibold text-sm text-gray-900 hover:text-brand-600 leading-snug"
           >
-            {lead.firstName} {lead.lastName}
+            {displayName(lead)}
           </Link>
           <span className={cn("text-xs px-1.5 py-0.5 rounded font-medium whitespace-nowrap flex-shrink-0", priority?.color, priority?.text)}>
             {priority?.label}

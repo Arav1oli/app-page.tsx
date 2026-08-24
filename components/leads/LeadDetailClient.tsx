@@ -4,49 +4,15 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   ArrowLeft, Phone, Mail, Globe, Linkedin, MapPin, Building2,
-  Pencil, Trash2, Ship, DollarSign, User, Calendar,
+  Pencil, Trash2, Ship, DollarSign, User, Calendar, AlertTriangle, X,
 } from "lucide-react"
-import { cn, STATUS_CONFIG, PRIORITY_CONFIG, SOURCE_OPTIONS, ACTIVITY_ICONS } from "@/lib/utils"
-import { formatDistanceToNow, format } from "date-fns"
+import { cn, STATUS_CONFIG, PRIORITY_CONFIG, SOURCE_OPTIONS } from "@/lib/utils"
+import { format } from "date-fns"
 import ActivityTimeline from "./ActivityTimeline"
 import EditLeadModal from "./EditLeadModal"
-
-type Activity = {
-  id: string
-  type: string
-  content: string
-  createdAt: string
-  user?: { id: string; name: string; initials: string } | null
-}
-
-type Lead = {
-  id: string
-  firstName: string
-  lastName: string
-  email?: string | null
-  phone?: string | null
-  mobile?: string | null
-  company?: string | null
-  jobTitle?: string | null
-  website?: string | null
-  linkedin?: string | null
-  address?: string | null
-  city?: string | null
-  country?: string | null
-  status: string
-  priority: string
-  leadSource?: string | null
-  notes?: string | null
-  budget?: string | null
-  vesselInterest?: string | null
-  lastContactedAt?: string | null
-  createdAt: string
-  updatedAt: string
-  owner?: { id: string; name: string; initials: string } | null
-  activities: Activity[]
-}
-
-type User = { id: string; name: string; initials: string }
+import {
+  Activity, LeadDetail, UserRef, displayName, leadInitials, errorMessage,
+} from "@/components/lead-types"
 
 function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value?: string | null }) {
   if (!value) return null
@@ -75,45 +41,93 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function LeadDetailClient({
   lead: initialLead,
   users,
-  currentUserId,
+  initialActivities,
+  activityTotal,
+  activityPageSize,
 }: {
-  lead: Lead
-  users: User[]
-  currentUserId: string
+  lead: LeadDetail
+  users: UserRef[]
+  initialActivities: Activity[]
+  activityTotal: number
+  activityPageSize: number
 }) {
   const router = useRouter()
-  const [lead, setLead] = useState<Lead>(initialLead)
-  const [activities, setActivities] = useState<Activity[]>(initialLead.activities)
+  const [lead, setLead] = useState<LeadDetail>(initialLead)
   const [showEdit, setShowEdit] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  // NOTE: activity state lives entirely in <ActivityTimeline/>. This component
+  // used to keep a duplicate copy in its own useState, which drifted from the
+  // timeline's copy and had to be updated twice on every submit.
 
   const status = STATUS_CONFIG[lead.status as keyof typeof STATUS_CONFIG]
   const priority = PRIORITY_CONFIG[lead.priority as keyof typeof PRIORITY_CONFIG]
   const source = SOURCE_OPTIONS.find((s) => s.value === lead.leadSource)
+  const name = displayName(lead)
 
   async function handleDelete() {
-    if (!confirm(`Delete ${lead.firstName} ${lead.lastName}? This cannot be undone.`)) return
+    if (!confirm(`Delete ${name}? This cannot be undone.`)) return
     setDeleting(true)
-    await fetch(`/api/leads/${lead.id}`, { method: "DELETE" })
-    router.push("/leads")
+    setError(null)
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error(await errorMessage(res, "Could not delete this lead"))
+      router.push("/leads")
+      router.refresh()
+    } catch (e: any) {
+      setDeleting(false)
+      setError(e?.message || "Could not delete this lead.")
+    }
   }
 
   async function handleStatusChange(newStatus: string) {
-    const updated = await fetch(`/api/leads/${lead.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
-    }).then((r) => r.json())
-    setLead((prev) => ({ ...prev, status: updated.status }))
+    const previous = lead.status
+    setLead((prev) => ({ ...prev, status: newStatus })) // optimistic
+    setError(null)
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (!res.ok) throw new Error(await errorMessage(res, "The update was rejected"))
+      const updated = await res.json()
+      setLead((prev) => ({ ...prev, status: updated?.status ?? newStatus }))
+    } catch (e: any) {
+      setLead((prev) => ({ ...prev, status: previous })) // roll back
+      setError(`Status not saved — ${e?.message || "the change was rejected"}.`)
+    }
   }
 
-  function handleLeadUpdated(updated: Lead) {
-    setLead((prev) => ({ ...prev, ...updated }))
+  /**
+   * Merge a PUT response back into the card.
+   *
+   * The edit form submits `ownerId`, but the card renders `lead.owner?.name`.
+   * If the response ever omits the embedded `owner` relation (or embeds a stale
+   * one), the sidebar would keep showing the OLD owner after a reassignment —
+   * so reconcile `owner` against `ownerId` using the known user list.
+   */
+  function handleLeadUpdated(updated: Partial<LeadDetail>) {
+    setLead((prev) => {
+      const next = { ...prev, ...updated } as LeadDetail
+      if ("ownerId" in updated) {
+        const ownerId = updated.ownerId ?? null
+        if (!ownerId) {
+          next.owner = null
+        } else if (!next.owner || next.owner.id !== ownerId) {
+          next.owner = users.find((u) => u.id === ownerId) ?? next.owner ?? null
+        }
+      } else if (updated.owner !== undefined) {
+        next.ownerId = updated.owner?.id ?? null
+      }
+      return next
+    })
     setShowEdit(false)
   }
 
-  function handleActivityAdded(activity: Activity) {
-    setActivities((prev) => [activity, ...prev])
+  /** The activity POST also stamps lastContactedAt server-side. */
+  function handleActivityLogged(activity: Activity) {
+    setLead((prev) => ({ ...prev, lastContactedAt: activity.createdAt }))
   }
 
   return (
@@ -125,9 +139,7 @@ export default function LeadDetailClient({
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">
-              {lead.firstName} {lead.lastName}
-            </h1>
+            <h1 className="text-lg font-semibold text-gray-900">{name}</h1>
             {lead.company && (
               <p className="text-sm text-gray-500">{lead.jobTitle ? `${lead.jobTitle} · ` : ""}{lead.company}</p>
             )}
@@ -144,13 +156,27 @@ export default function LeadDetailClient({
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="flex items-center gap-1.5 border border-red-200 hover:border-red-400 text-red-600 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 border border-red-200 hover:border-red-400 disabled:opacity-60 text-red-600 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            Delete
+            {deleting ? "Deleting…" : "Delete"}
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-3 mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex-shrink-0">
+          <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-800">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="p-1 rounded text-red-500 hover:bg-red-100"
+            title="Dismiss"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar: contact card */}
@@ -158,11 +184,9 @@ export default function LeadDetailClient({
           {/* Avatar + status */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 text-center">
             <div className="w-16 h-16 rounded-full bg-brand-600 flex items-center justify-center mx-auto mb-3">
-              <span className="text-white text-xl font-bold">
-                {lead.firstName[0]}{lead.lastName[0]}
-              </span>
+              <span className="text-white text-xl font-bold">{leadInitials(lead)}</span>
             </div>
-            <h2 className="font-semibold text-gray-900">{lead.firstName} {lead.lastName}</h2>
+            <h2 className="font-semibold text-gray-900">{name}</h2>
             {lead.jobTitle && <p className="text-sm text-gray-500 mt-0.5">{lead.jobTitle}</p>}
             {lead.company && <p className="text-sm text-gray-500">{lead.company}</p>}
 
@@ -203,7 +227,7 @@ export default function LeadDetailClient({
           </Section>
 
           <Section title="Lead Details">
-            <InfoRow icon={User} label="Owner" value={lead.owner?.name} />
+            <InfoRow icon={User} label="Owner" value={lead.owner?.name ?? "Unassigned"} />
             <InfoRow icon={Building2} label="Source" value={source?.label} />
             <InfoRow icon={DollarSign} label="Budget" value={lead.budget} />
             <InfoRow icon={Ship} label="Vessel Interest" value={lead.vesselInterest} />
@@ -232,9 +256,10 @@ export default function LeadDetailClient({
         <div className="flex-1 overflow-y-auto p-6">
           <ActivityTimeline
             leadId={lead.id}
-            activities={activities}
-            currentUserId={currentUserId}
-            onActivityAdded={handleActivityAdded}
+            initialActivities={initialActivities}
+            initialTotal={activityTotal}
+            pageSize={activityPageSize}
+            onActivityLogged={handleActivityLogged}
           />
         </div>
       </div>

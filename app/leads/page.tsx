@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
@@ -11,27 +12,23 @@ export default async function LeadsPage() {
   const session = await getServerSession(authOptions)
   if (!session) redirect("/login")
 
-  const [leads, users] = await Promise.all([
-    prisma.lead.findMany({
-      include: { owner: { select: { id: true, name: true, initials: true } } },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.user.findMany({
-      select: { id: true, name: true, initials: true },
-      orderBy: { name: "asc" },
-    }),
-  ])
-
-  const serialized = leads.map((l) => ({
-    ...l,
-    createdAt: l.createdAt.toISOString(),
-    updatedAt: l.updatedAt.toISOString(),
-    lastContactedAt: l.lastContactedAt?.toISOString() ?? null,
-  }))
+  // Only the (small) user list is loaded here. Leads are fetched one page at a
+  // time from /api/leads by the client, driven by the URL search params — the
+  // old unbounded findMany() would have shipped all 29k contacts to the browser.
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, initials: true },
+    orderBy: { name: "asc" },
+  })
 
   return (
     <AppShell>
-      <LeadListClient initialLeads={serialized} users={users} />
+      <Suspense
+        fallback={
+          <div className="px-6 py-16 text-center text-sm text-gray-400">Loading leads…</div>
+        }
+      >
+        <LeadListClient users={users} />
+      </Suspense>
     </AppShell>
   )
 }

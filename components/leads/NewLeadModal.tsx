@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { STATUS_CONFIG, PRIORITY_CONFIG, SOURCE_OPTIONS } from "@/lib/utils"
+import { UserRef, errorMessage } from "@/components/lead-types"
 
-type User = { id: string; name: string; initials: string }
+type User = UserRef
 
 export default function NewLeadModal({
   defaultStatus = "new",
@@ -26,37 +27,66 @@ export default function NewLeadModal({
   const [error, setError] = useState("")
 
   useEffect(() => {
-    fetch("/api/users").then((r) => r.json()).then(setUsers)
+    let cancelled = false
+    fetch("/api/users")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (!cancelled) setUsers(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {
+        if (!cancelled) setUsers([])
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
   }
 
+  const orNull = (v: string) => (v.trim() ? v.trim() : null)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-    if (!form.firstName.trim() || !form.lastName.trim()) {
-      setError("First and last name are required.")
+    // A surname is NOT required: only ~4,586 of 29,339 real contacts have one.
+    if (!form.firstName.trim()) {
+      setError("A first name (or contact name) is required.")
       return
     }
     setSaving(true)
-    const res = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        ownerId: form.ownerId || undefined,
-        leadSource: form.leadSource || undefined,
-      }),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      setError("Failed to create lead.")
-      return
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          firstName: form.firstName.trim(),
+          lastName: orNull(form.lastName),
+          ownerId: orNull(form.ownerId),
+          leadSource: orNull(form.leadSource),
+          email: orNull(form.email),
+          phone: orNull(form.phone),
+          mobile: orNull(form.mobile),
+          company: orNull(form.company),
+          jobTitle: orNull(form.jobTitle),
+          website: orNull(form.website),
+          budget: orNull(form.budget),
+          vesselInterest: orNull(form.vesselInterest),
+          city: orNull(form.city),
+          country: orNull(form.country),
+          notes: orNull(form.notes),
+        }),
+      })
+      if (!res.ok) throw new Error(await errorMessage(res, "Failed to create lead"))
+      const lead = await res.json()
+      onCreated(lead)
+    } catch (err: any) {
+      setError(err?.message || "Failed to create lead.")
+    } finally {
+      setSaving(false)
     }
-    const lead = await res.json()
-    onCreated(lead)
   }
 
   return (
@@ -79,7 +109,7 @@ export default function NewLeadModal({
             <legend className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Contact Info</legend>
             <div className="grid grid-cols-2 gap-3">
               <Field label="First Name *" value={form.firstName} onChange={(v) => set("firstName", v)} />
-              <Field label="Last Name *" value={form.lastName} onChange={(v) => set("lastName", v)} />
+              <Field label="Last Name" value={form.lastName} onChange={(v) => set("lastName", v)} />
               <Field label="Email" value={form.email} onChange={(v) => set("email", v)} type="email" />
               <Field label="Phone" value={form.phone} onChange={(v) => set("phone", v)} />
               <Field label="Mobile" value={form.mobile} onChange={(v) => set("mobile", v)} />

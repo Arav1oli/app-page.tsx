@@ -1,18 +1,8 @@
 "use client"
 import { useState } from "react"
-import { X } from "lucide-react"
+import { X, AlertTriangle } from "lucide-react"
 import { STATUS_CONFIG, PRIORITY_CONFIG, SOURCE_OPTIONS } from "@/lib/utils"
-
-type User = { id: string; name: string; initials: string }
-type Lead = {
-  id: string; firstName: string; lastName: string; email?: string | null
-  phone?: string | null; mobile?: string | null; company?: string | null
-  jobTitle?: string | null; website?: string | null; linkedin?: string | null
-  address?: string | null; city?: string | null; country?: string | null
-  status: string; priority: string; leadSource?: string | null
-  notes?: string | null; budget?: string | null; vesselInterest?: string | null
-  owner?: { id: string; name: string; initials: string } | null
-}
+import { Lead, UserRef, errorMessage } from "@/components/lead-types"
 
 export default function EditLeadModal({
   lead,
@@ -21,12 +11,12 @@ export default function EditLeadModal({
   onClose,
 }: {
   lead: Lead
-  users: User[]
+  users: UserRef[]
   onUpdated: (lead: any) => void
   onClose: () => void
 }) {
   const [form, setForm] = useState({
-    firstName: lead.firstName, lastName: lead.lastName,
+    firstName: lead.firstName, lastName: lead.lastName ?? "",
     email: lead.email ?? "", phone: lead.phone ?? "", mobile: lead.mobile ?? "",
     company: lead.company ?? "", jobTitle: lead.jobTitle ?? "",
     website: lead.website ?? "", linkedin: lead.linkedin ?? "",
@@ -37,29 +27,65 @@ export default function EditLeadModal({
     notes: lead.notes ?? "",
   })
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
   }
 
+  /**
+   * Blank optional fields must be sent as `null`, not `undefined`.
+   * JSON.stringify drops `undefined` keys, so the old code silently ignored
+   * every "clear this field" edit — unassigning an owner or removing an email
+   * looked saved in the form but the record kept its old value.
+   */
+  const orNull = (v: string) => (v.trim() ? v.trim() : null)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.firstName.trim()) {
+      setError("First name is required.")
+      return
+    }
     setSaving(true)
-    const res = await fetch(`/api/leads/${lead.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        ownerId: form.ownerId || undefined,
-        leadSource: form.leadSource || undefined,
-        email: form.email || undefined,
-        phone: form.phone || undefined,
-        mobile: form.mobile || undefined,
-      }),
-    })
-    setSaving(false)
-    const updated = await res.json()
-    onUpdated(updated)
+    setError("")
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          firstName: form.firstName.trim(),
+          // ~84% of imported contacts have no surname — send null, not "".
+          lastName: orNull(form.lastName),
+          ownerId: orNull(form.ownerId),
+          leadSource: orNull(form.leadSource),
+          email: orNull(form.email),
+          phone: orNull(form.phone),
+          mobile: orNull(form.mobile),
+          company: orNull(form.company),
+          jobTitle: orNull(form.jobTitle),
+          website: orNull(form.website),
+          linkedin: orNull(form.linkedin),
+          address: orNull(form.address),
+          city: orNull(form.city),
+          country: orNull(form.country),
+          budget: orNull(form.budget),
+          vesselInterest: orNull(form.vesselInterest),
+          notes: orNull(form.notes),
+        }),
+      })
+      if (!res.ok) throw new Error(await errorMessage(res, "Could not save this lead"))
+      const updated = await res.json()
+      // Make sure the caller can reconcile the owner even if the response
+      // doesn't embed the relation.
+      if (updated && updated.ownerId === undefined) updated.ownerId = orNull(form.ownerId)
+      onUpdated(updated)
+    } catch (err: any) {
+      setError(err?.message || "Could not save this lead.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -74,11 +100,18 @@ export default function EditLeadModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {error && (
+            <p className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              {error}
+            </p>
+          )}
+
           <fieldset>
             <legend className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Contact Info</legend>
             <div className="grid grid-cols-2 gap-3">
               <Field label="First Name *" value={form.firstName} onChange={(v) => set("firstName", v)} />
-              <Field label="Last Name *" value={form.lastName} onChange={(v) => set("lastName", v)} />
+              <Field label="Last Name" value={form.lastName} onChange={(v) => set("lastName", v)} />
               <Field label="Email" value={form.email} onChange={(v) => set("email", v)} type="email" />
               <Field label="Phone" value={form.phone} onChange={(v) => set("phone", v)} />
               <Field label="Mobile" value={form.mobile} onChange={(v) => set("mobile", v)} />

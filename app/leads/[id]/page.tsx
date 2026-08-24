@@ -7,11 +7,14 @@ import LeadDetailClient from "@/components/leads/LeadDetailClient"
 
 export const dynamic = "force-dynamic"
 
+/** A single contact can have 3,600+ activities — only the newest page loads. */
+const ACTIVITY_PAGE_SIZE = 50
+
 export default async function LeadDetailPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session) redirect("/login")
 
-  const [lead, users] = await Promise.all([
+  const [lead, users, activityTotal] = await Promise.all([
     prisma.lead.findUnique({
       where: { id: params.id },
       include: {
@@ -19,6 +22,7 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
         activities: {
           include: { user: { select: { id: true, name: true, initials: true } } },
           orderBy: { createdAt: "desc" },
+          take: ACTIVITY_PAGE_SIZE,
         },
       },
     }),
@@ -26,26 +30,34 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
       select: { id: true, name: true, initials: true },
       orderBy: { name: "asc" },
     }),
+    prisma.activity.count({ where: { leadId: params.id } }),
   ])
 
   if (!lead) notFound()
 
+  const { activities, ...rest } = lead
+
   const serialized = {
-    ...lead,
+    ...rest,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
     lastContactedAt: lead.lastContactedAt?.toISOString() ?? null,
-    activities: lead.activities.map((a) => ({
-      ...a,
-      createdAt: a.createdAt.toISOString(),
-    })),
   }
 
-  const currentUserId = (session.user as any).id
+  const serializedActivities = activities.map((a) => ({
+    ...a,
+    createdAt: a.createdAt.toISOString(),
+  }))
 
   return (
     <AppShell>
-      <LeadDetailClient lead={serialized} users={users} currentUserId={currentUserId} />
+      <LeadDetailClient
+        lead={serialized}
+        users={users}
+        initialActivities={serializedActivities}
+        activityTotal={activityTotal}
+        activityPageSize={ACTIVITY_PAGE_SIZE}
+      />
     </AppShell>
   )
 }
