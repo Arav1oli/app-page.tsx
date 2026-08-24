@@ -1,6 +1,23 @@
+# Build output
 .next/
+out/
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Dependencies
 node_modules/
+
+# Local database — never commit customer data
 *.db
 *.db-journal
-.env.local
+
+# Environment files — never commit secrets
 .env
+.env.local
+.env*.local
+
+# Deploy tooling
+.vercel
+
+# OS noise
+.DS_Store
