@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0b2545;
+  --abyss: #06182f;
+  --gold: #c9a158;
+  --gold-bright: #d8b36a;
+  --champagne: #e9dcc0;
+  --paper: #f4efe5;
+  --ink: #23344a;
+  --mist: #93a3b8;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+}
+
+@layer components {
+  .eyebrow {
+    @apply block font-sans text-[0.65rem] uppercase tracking-eyebrow text-gold;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-8 py-3.5 font-sans text-[0.7rem] uppercase tracking-wide2 no-underline transition-all duration-300;
+  }
+  .btn-gold {
+    @apply btn bg-gradient-to-br from-gold-bright to-gold text-abyss shadow-[0_10px_30px_rgba(201,161,88,0.28)] hover:-translate-y-0.5 hover:brightness-105;
+  }
+  .btn-hair {
+    @apply btn border border-white/25 text-champagne hover:border-gold hover:text-gold-bright;
+  }
+  .btn-navy {
+    @apply btn border border-navy text-navy hover:bg-navy hover:text-champagne;
+  }
+  .h-serif {
+    @apply font-serif font-normal leading-[1.12] text-navy;
+  }
+  .h-serif em {
+    @apply not-italic font-serif italic text-gold;
+  }
+  .dark-sec .h-serif {
+    @apply text-champagne;
+  }
+  .dark-sec .h-serif em {
+    @apply text-gold-bright;
+  }
+  .field-label {
+    @apply block font-sans text-[0.6rem] uppercase tracking-wide2 text-gold mb-1.5;
+  }
+  .field-input {
+    @apply w-full border-b border-white/20 bg-transparent py-2.5 font-sans text-[0.95rem] text-champagne outline-none transition-colors focus:border-gold;
+  }
+  .field-input option {
+    @apply bg-white text-abyss;
+  }
+  .light-card {
+    @apply rounded-2xl bg-white/60 shadow-[0_18px_50px_rgba(11,37,69,0.08)];
+  }
+}
+
+/* Reveal-on-scroll: applied by components/Reveal.tsx */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

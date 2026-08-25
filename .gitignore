@@ -7,3 +7,6 @@ node_modules/
 
 # local screenshot tooling (not part of the site)
 shots/
+flagship-next/node_modules/
+flagship-next/.next/
+flagship-next/out/
