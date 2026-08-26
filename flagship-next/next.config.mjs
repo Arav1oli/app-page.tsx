@@ -1,23 +1,26 @@
 /**
- * STAGING=1 builds a static export that can be served from a plain file host
- * (raw.githack over the GitHub repo) under the /flagship-staging path.
- * Production builds (no STAGING) have no basePath and can deploy to any
- * Node/Vercel/Cloudflare target, or export statically at the domain root.
+ * BASE_PATH controls where the static export is served from:
+ *   (unset)                 production at a domain root
+ *   /app-page.tsx           GitHub Pages project site
+ *   /Arav1oli/app-page.tsx/claude/web-design-q1l9go/flagship-staging
+ *                           raw.githack preview straight off the branch
+ *
+ * HTML_LINKS=1 appends .html to internal links for plain file hosts that
+ * cannot rewrite /buy to /buy.html.
  */
-const staging = process.env.STAGING === "1";
-const stagingBase =
-  "/Arav1oli/app-page.tsx/claude/web-design-q1l9go/flagship-staging";
+const basePath = process.env.BASE_PATH ?? "";
+const htmlLinks = process.env.HTML_LINKS === "1";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "export",
-  basePath: staging ? stagingBase : "",
-  assetPrefix: staging ? stagingBase : undefined,
+  basePath,
+  assetPrefix: basePath || undefined,
   images: { unoptimized: true },
   trailingSlash: false,
   env: {
-    NEXT_PUBLIC_HTML_LINKS: staging ? "1" : "",
-    NEXT_PUBLIC_BASE_PATH: staging ? stagingBase : "",
+    NEXT_PUBLIC_HTML_LINKS: htmlLinks ? "1" : "",
+    NEXT_PUBLIC_BASE_PATH: basePath,
   },
 };
 

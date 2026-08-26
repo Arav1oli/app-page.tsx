@@ -190,6 +190,67 @@ function mapFeedItem(o: Record<string, unknown>): Vessel | null {
   };
 }
 
+/**
+ * Some feed rows carry a note ("Inspections available upon request.") in the
+ * location field rather than a place, so only short sentence-free values are
+ * treated as a location.
+ */
+export function lyingAt(v: Vessel): string {
+  return v.lo && v.lo.length <= 40 && !/[.!]/.test(v.lo) ? v.lo : "";
+}
+
+export function listedOn(v: Vessel): string {
+  if (!v.ad) return "";
+  return new Date(v.ad * 1000).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export function vesselType(v: Vessel): string {
+  if (v.cat === "sail") return "Sailing yacht";
+  if (v.cat === "other") return "Marine asset";
+  return "Motor yacht";
+}
+
+/** Grouped specification rows for the listing page. Empty values are dropped. */
+export function specGroups(v: Vessel): { group: string; rows: [string, string][] }[] {
+  const groups: { group: string; rows: [string, string][] }[] = [
+    {
+      group: "Vessel",
+      rows: [
+        ["Make", v.mk],
+        ["Model", v.t],
+        ["Year", v.y],
+        ["Type", vesselType(v)],
+        ["Condition", v.nb ? "New build" : "Pre-owned"],
+      ],
+    },
+    {
+      group: "Dimensions & Accommodation",
+      rows: [
+        ["Length overall", v.l ? `${v.l} m` : ""],
+        ["Length (imperial)", v.l ? `${(v.l * 3.28084).toFixed(1)} ft` : ""],
+        ["Cabins", v.cb ? String(v.cb) : ""],
+      ],
+    },
+    {
+      group: "Sale Details",
+      rows: [
+        ["Asking price", formatPrice(v)],
+        ["Currency", v.p ? v.c : ""],
+        ["Lying", lyingAt(v)],
+        ["Listing reference", v.r],
+        ["Listed", listedOn(v)],
+      ],
+    },
+  ];
+  return groups
+    .map((g) => ({ ...g, rows: g.rows.filter(([, val]) => !!val) }))
+    .filter((g) => g.rows.length > 0);
+}
+
 /** Convenience selectors used by pages. */
 export function brokerageVessels(vessels: Vessel[]): Vessel[] {
   return vessels.filter((v) => !v.nb && !v.s);

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3080",
     "build": "next build",
-    "build:staging": "STAGING=1 next build",
+    "build:staging": "BASE_PATH=/Arav1oli/app-page.tsx/claude/web-design-q1l9go/flagship-staging HTML_LINKS=1 next build",
+    "build:pages": "BASE_PATH=/app-page.tsx next build",
     "lint": "next lint"
   },
   "dependencies": {
