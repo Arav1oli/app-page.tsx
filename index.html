@@ -520,7 +520,8 @@
 
   /* ---------- COSTING ENGINE (AUD, FOB China basis, batch-10 reference) ---------- */
   var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5,
-               plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false };
+               plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false,
+               liner: false, wrap: false };
 
   var CORE = [
     ['BODY CARCASS, FOLDED + WELDED, 3.2 CRS', 230, 'body'],
@@ -576,7 +577,14 @@
     }
     CORE.forEach(function (r) {
       var scale = (r[2] === 'body' || r[2] === 'cart' || r[2] === 'deck') ? xl : 1;
-      push(r[0], r[1] * vm * scale, r[2]);
+      var amt = r[1], nm = r[0];
+      if (COST.liner && nm.indexOf('FIREBRICK') === 0) {
+        nm = 'VERMICULITE BOARD + CERAMIC FIBRE (FLOOR BRICK ONLY)'; amt = 45;
+      }
+      if (COST.wrap && nm.indexOf('BODY CARCASS') === 0) {
+        nm = 'BODY CARCASS, ONE-PIECE FOLDED WRAP, 3.2 CRS'; amt = 205;
+      }
+      push(nm, amt * vm * scale, r[2]);
     });
     OPTS.forEach(function (o) {
       if (COST[o[0]]) push(o[1], o[2] * vm, o[3]);
@@ -591,8 +599,12 @@
     var landed = fob + freight + 0 + 25 + 90;
     var rrp = landed * COST.margin * 1.10;
     var gm = (1 - 1/COST.margin) * 100;
+    var kg = 110 * (COST.xl ? 1.15 : 1);
+    if (COST.liner) kg -= 25;
+    if (!COST.plancha) kg -= 7;
+    if (!COST.bench) kg -= 4;
     return { qty: qty, lines: lines, groups: groups, fob: fob, freight: freight,
-             landed: landed, rrp: rrp, gm: gm, vm: vm };
+             landed: landed, rrp: rrp, gm: gm, vm: vm, kg: kg };
   }
 
   function money(n) { return '$' + Math.round(n).toLocaleString(); }
@@ -619,6 +631,28 @@
     return '<div class="fgrid">' + cards + '</div>' +
       '<div class="cnote" style="margin:-2px 0 12px 0">Click a finish to price the whole build on it. ' +
       'Reference: <b>Tagwood BBQ03SI uses plain heat-resistant paint</b> — below all four.</div>';
+  }
+
+  function methodCard() {
+    if (!COST.liner && !COST.wrap) return '';
+    var b = '';
+    if (COST.liner) b +=
+      '<div style="margin-bottom:8px"><b style="color:var(--ink)">INSULATED LINER — vermiculite board + ceramic fibre, floor brick only</b><br>' +
+      'A parrilla is an open fire: heat leaves upward to the grate. The walls only need to insulate, not store energy — ' +
+      'so thermal mass on the walls is weight you carry for nothing. Vermiculite board is rated 1100 °C, cuts on a saw, ' +
+      'and runs about half the price of fireclay. Frees the geometry from square brick, saves ~25 kg.<br>' +
+      '<span style="color:var(--muted)">REAL WORLD: standard liner across the wood-stove industry (Contura, Chilli Penguin, Cubic Mini). ' +
+      'Ooni Karu and Koda use a double-wall stainless shell with ceramic fibre and no brick at all. ' +
+      'Gozney Dome pairs ceramic fibre with calcium silicate. Watch point: vermiculite is fragile to impact — keep it off the floor.</span></div>';
+    if (COST.wrap) b +=
+      '<div><b style="color:var(--ink)">ONE-PIECE FOLDED WRAP — front + both ends off a single blank</b><br>' +
+      'Four corner welds become one seam: less welding, less grinding, less distortion, no ash leaks at the corners. ' +
+      'Large-radius bends give the moulded look without press tooling — the reason the Gozney reads as moulded is soft corners, ' +
+      'not compound curves. Back panel stays separate and bolted for service access.<br>' +
+      '<span style="color:var(--muted)">TRADE: more nesting waste on one big blank, and it needs a pressbrake with the bed and ' +
+      'tonnage for 3.2 mm at 1450 — a supplier qualification question, not a cost one.</span></div>';
+    return '<div style="margin-top:12px;padding:12px 14px;border:1.5px solid var(--sage-deep);background:var(--surface);' +
+      'font-size:11px;line-height:1.55">' + b + '</div>';
   }
 
   function finishCard() {
@@ -703,10 +737,14 @@
             '<div class="cbig">' + money(m.rrp) + '</div>' +
             '<div class="cnote">Gross margin ' + m.gm.toFixed(0) + '% · <span class="' + posCls + '">' + pos + '</span></div>' +
             '<div class="cnote" style="margin-top:8px">Tagwood BBQ03SI benchmark: $4,500–5,500 · volume factor ' + m.vm.toFixed(2) + '×</div>' +
+            '<div class="cnote" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">' +
+              'SHIPPING WEIGHT <b style="color:var(--ink)">' + Math.round(m.kg) + ' kg</b>' +
+              (COST.liner ? ' &nbsp;<span style="color:var(--ok)">&minus;25 kg vs brick walls</span>' : '') +
+              ' &nbsp;·&nbsp; Tagwood 124.7 kg</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      finishCard() +
+      finishCard() + methodCard() +
       '<div class="cnote" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">' +
       'ESTIMATES, NOT QUOTES. Part prices are judgement at a batch-10 reference and scale by the volume factor; ' +
       'coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
@@ -750,6 +788,10 @@
       '<div class="crow"><label for="o_door">Front door</label><input id="o_door" data-o="door" type="checkbox" checked></div>' +
       '<div class="crow"><label for="o_lift2">2nd lift gear</label><input id="o_lift2" data-o="lift2" type="checkbox"></div>' +
       '<div class="crow"><label for="o_xl">XL body (+500 W)</label><input id="o_xl" data-o="xl" type="checkbox"></div>' +
+      '</div>';
+    html += '<div class="grp"><h2>BUILD METHOD</h2>' +
+      '<div class="crow"><label for="o_liner">Insulated liner (no wall brick)</label><input id="o_liner" data-o="liner" type="checkbox"></div>' +
+      '<div class="crow"><label for="o_wrap">One-piece folded wrap</label><input id="o_wrap" data-o="wrap" type="checkbox"></div>' +
       '</div>';
     html += '<div class="derived" id="derived"></div>';
     html += '<div class="warnings" id="warnings"></div>';
