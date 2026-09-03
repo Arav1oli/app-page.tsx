@@ -1,14 +1,14 @@
 # Asado Works — Parrilla Design Log
 
 Working record of the design, materials and costing decisions for the Asado Works
-parrilla. Rev F, 3 September 2026.
+parrilla. Rev G, 3 September 2026.
 
 **Live deliverables**
 
 | What | Where |
 |---|---|
 | Plan builder (live drawings, 3D, cost calculator) | https://arav1oli.github.io/app-page.tsx/ |
-| RFQ drawing pack (8 sheets) | https://arav1oli.github.io/app-page.tsx/spec.html |
+| RFQ drawing pack (9 sheets) | https://arav1oli.github.io/app-page.tsx/spec.html |
 | Publishing method (how to redeploy) | `asado/PUBLISHING.md` |
 
 ---
@@ -267,6 +267,63 @@ tonnage for 3.2 mm at 1450 — a supplier qualification question, not a cost one
 
 ---
 
+## 5A. Rev G — monocoque shell + drop-in fire pan (SE-09)
+
+**The brief, restated: a sealed green side with no visible gap.** Everything above led here.
+
+### The move
+
+Stop treating the outer skin as part of the fire chamber. Make it **one continuous rolled
+sage shell** — no seam, no gap, no fastener visible anywhere outside — and put the fire in
+a **drop-in pan** that lifts out complete.
+
+| # | Element | Spec |
+|---|---|---|
+| 1 | **Monocoque shell** | 3.2 CRS, rolled one-piece, large-radius corners, sage. Skin and structure only — **never meets fire**, so the green is never at risk |
+| 2 | **Drop-in fire pan** | 304 SS walls, lifts out complete. The only part fire touches. Non-porous, so rain is irrelevant |
+| 3 | **Sealed cavity 18–20 mm** | The air gap is **inside**, behind the pan wall. Invisible from outside. Optional ceramic fibre bonds to the *pan*, so insulation stays captive and dry |
+| 4 | **Pan flange** | Folds outward over the shell rim: sheds rain, closes the void, hides the joint, and gives a crisp stainless rim line against the sage |
+| 5 | **5 mm carbon floor** | Welded into the pan. Mass and abrasion where coals sit and get raked. Oil-seasons |
+| 6 | **Cavity drain** | Anything past the flange exits the shell base. BOM item 10 becomes structural |
+| 7 | **Large-radius base** | What reads as "moulded" on the Gozney is soft corners, not compound curves. Wide-radius tool, **no press tooling** |
+
+### Why this is the answer
+
+- **Sealed green side, no visible gap** — the gap stops being a design feature and becomes
+  a concealed detail
+- **No brick in a channel**, no square constraint
+- **Nothing porous** anywhere near fire or rain
+- **Moulded read with zero press tooling**
+- The green finish **never sees fire temperature** — the whole finish argument goes away
+- **Cleaning is lift-the-pan, tip the ash**
+- The wear part is **replaceable and sellable** — the role firebrick used to play, without
+  the geometry penalty
+
+### Cost, batch 10
+
+| | AUD |
+|---|---|
+| Monocoque shell, rolled 1-piece | +240 |
+| Drop-in fire pan, 304 + 5 mm floor + flange | +185 |
+| Delete welded carcass | −230 |
+| Delete firebrick liner set | −60 |
+| **Net** | **+$135/unit** |
+
+Weight ~−5 kg. Fewer welds and no brick-fitting labour offset most of the forming cost.
+
+### Prove before committing
+
+1. **Pan wall temperature at the coal line** — if the 304 wall runs hot enough to conduct
+   across the standoff, add the fibre layer to the pan
+2. **Shell skin temperature** at the hottest point — must stay under the powder's rating
+   with margin
+3. **Rain-then-fire test** on unit one
+4. **Pan wall stiffness** — rib or bead it; a flat 1.5 sheet at 1450 will oil-can
+5. **Roll / pressbrake capacity for 3.2 at 1450** — supplier qualification
+
+
+---
+
 ## 6. Cost model
 
 **All figures are ballpark estimates, not quotes.** Areas and dimensions are exact per
@@ -383,6 +440,7 @@ free freight), marketing, payment fees.
 | Sheet | Content |
 |---|---|
 | GA-01 | General arrangement — front + side elevations, plan, datum chain |
+| SE-09 | **Construction section — monocoque shell + drop-in fire pan (Rev G)** |
 | EX-02 | Exploded parts, balloons keyed to BOM |
 | BOM-03 | 17-item bill of materials + RFQ conditions |
 | FN-04 | Finish spec, colour + finish map by item |

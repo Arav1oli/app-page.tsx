@@ -521,7 +521,7 @@
   /* ---------- COSTING ENGINE (AUD, FOB China basis, batch-10 reference) ---------- */
   var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5,
                plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false,
-               liner: false, wrap: false };
+               build: 'welded' };
 
   var CORE = [
     ['BODY CARCASS, FOLDED + WELDED, 3.2 CRS', 230, 'body'],
@@ -578,11 +578,13 @@
     CORE.forEach(function (r) {
       var scale = (r[2] === 'body' || r[2] === 'cart' || r[2] === 'deck') ? xl : 1;
       var amt = r[1], nm = r[0];
-      if (COST.liner && nm.indexOf('FIREBRICK') === 0) {
-        nm = '304 SS WALL SKIN + SEALED CERAMIC FIBRE + 5mm FLOOR PLATE'; amt = 95;
+      if (COST.build === 'wrap') {
+        if (nm.indexOf('FIREBRICK') === 0) { nm = '304 SS WALL SKIN + SEALED CERAMIC FIBRE + 5mm FLOOR PLATE'; amt = 95; }
+        if (nm.indexOf('BODY CARCASS') === 0) { nm = 'BODY CARCASS, ONE-PIECE FOLDED WRAP, 3.2 CRS'; amt = 205; }
       }
-      if (COST.wrap && nm.indexOf('BODY CARCASS') === 0) {
-        nm = 'BODY CARCASS, ONE-PIECE FOLDED WRAP, 3.2 CRS'; amt = 205;
+      if (COST.build === 'mono') {
+        if (nm.indexOf('BODY CARCASS') === 0) { nm = 'MONOCOQUE SHELL, ROLLED 1-PIECE, LARGE RADIUS, 3.2 CRS'; amt = 240; }
+        if (nm.indexOf('FIREBRICK') === 0) { nm = 'DROP-IN FIRE PAN — 304 WALLS + 5mm CARBON FLOOR + FLANGE'; amt = 185; }
       }
       push(nm, amt * vm * scale, r[2]);
     });
@@ -600,7 +602,8 @@
     var rrp = landed * COST.margin * 1.10;
     var gm = (1 - 1/COST.margin) * 100;
     var kg = 110 * (COST.xl ? 1.15 : 1);
-    if (COST.liner) kg -= 25;
+    if (COST.build === 'wrap') kg -= 25;
+    if (COST.build === 'mono') kg -= 5;
     if (!COST.plancha) kg -= 7;
     if (!COST.bench) kg -= 4;
     return { qty: qty, lines: lines, groups: groups, fob: fob, freight: freight,
@@ -634,25 +637,24 @@
   }
 
   function methodCard() {
-    if (!COST.liner && !COST.wrap) return '';
+    if (COST.build === 'welded') return '';
     var b = '';
-    if (COST.liner) b +=
-      '<div style="margin-bottom:8px"><b style="color:var(--ink)">SS WALL SKIN + SEALED CAVITY — 304 walls, ceramic fibre between skins, 5 mm floor plate</b><br>' +
-      'A parrilla is an open fire: heat leaves upward to the grate, so the walls insulate rather than store energy. ' +
-      'But this firebox is open to the sky and <b>will be rained into</b> — so nothing porous can sit on the fire face. ' +
-      '304 stainless cannot absorb water, is thin enough to roll or curve, and heat-tints to a patina rather than failing. ' +
-      'The ceramic fibre goes <b>sealed in the wall cavity</b>, never touched by flame or weather.<br>' +
-      '<span style="color:var(--muted)">REAL WORLD: exactly the Ooni Karu / Koda arrangement — double-wall stainless with encapsulated ' +
-      'ceramic fibre and no brick at all; Gozney Dome is a 304 inner shell with fibre plus calcium silicate. ' +
-      'REJECTED: vermiculite board — hygroscopic, soaks up rain and spalls on the next fire. Fine in a dry indoor stove, wrong here. ' +
-      'Requires the item-10 water drain to be treated as structural.</span></div>';
-    if (COST.wrap) b +=
-      '<div><b style="color:var(--ink)">ONE-PIECE FOLDED WRAP — front + both ends off a single blank</b><br>' +
-      'Four corner welds become one seam: less welding, less grinding, less distortion, no ash leaks at the corners. ' +
-      'Large-radius bends give the moulded look without press tooling — the reason the Gozney reads as moulded is soft corners, ' +
-      'not compound curves. Back panel stays separate and bolted for service access.<br>' +
-      '<span style="color:var(--muted)">TRADE: more nesting waste on one big blank, and it needs a pressbrake with the bed and ' +
-      'tonnage for 3.2 mm at 1450 — a supplier qualification question, not a cost one.</span></div>';
+    if (COST.build === 'wrap') b =
+      '<b style="color:var(--ink)">FOLDED WRAP + SEALED CAVITY</b><br>' +
+      'Front and both ends off one blank: four corner welds become one seam. 304 wall skin (non-porous — this firebox ' +
+      'is rained into), ceramic fibre sealed in the cavity, 5 mm carbon floor where coals sit. Large-radius bends give ' +
+      'the moulded read without press tooling.<br>' +
+      '<span style="color:var(--muted)">Ooni Karu / Koda arrangement. Requires the item-10 drain treated as structural.</span>';
+    if (COST.build === 'mono') b =
+      '<b style="color:var(--ink)">MONOCOQUE SHELL + DROP-IN FIRE PAN &nbsp;·&nbsp; see SE-09</b><br>' +
+      'One continuous rolled sage shell — <b>no seam, no gap, no fastener visible outside.</b> It is skin and structure ' +
+      'only and never meets fire, so the green is never at risk. A <b>drop-in 304 pan</b> with a 5 mm carbon floor carries ' +
+      'the coals and lifts out complete. The 18–20 mm air gap sits <b>inside</b>, behind the pan wall, capped by the pan ' +
+      'flange — concealed, not a styling gap. Optional fibre bonds to the <i>pan</i>, so insulation stays captive and dry.<br>' +
+      '<span style="color:var(--muted)">The flange is the only visible transition and reads as a deliberate stainless rim ' +
+      'line against the sage. Cleaning is lift-the-pan. The wear part becomes a sellable spare. ' +
+      'PROVE FIRST: pan wall temp at the coal line, shell skin temp, rain-then-fire, pan wall stiffness (rib it), ' +
+      'and roll capacity for 3.2 at 1450.</span>';
     return '<div style="margin-top:12px;padding:12px 14px;border:1.5px solid var(--sage-deep);background:var(--surface);' +
       'font-size:11px;line-height:1.55">' + b + '</div>';
   }
@@ -792,8 +794,12 @@
       '<div class="crow"><label for="o_xl">XL body (+500 W)</label><input id="o_xl" data-o="xl" type="checkbox"></div>' +
       '</div>';
     html += '<div class="grp"><h2>BUILD METHOD</h2>' +
-      '<div class="crow"><label for="o_liner">SS wall skin + sealed cavity</label><input id="o_liner" data-o="liner" type="checkbox"></div>' +
-      '<div class="crow"><label for="o_wrap">One-piece folded wrap</label><input id="o_wrap" data-o="wrap" type="checkbox"></div>' +
+      '<div class="crow"><label for="c_build">Construction</label>' +
+      '<select id="c_build" data-c="build">' +
+      '<option value="welded">Welded box + firebrick</option>' +
+      '<option value="wrap">Folded wrap + sealed cavity</option>' +
+      '<option value="mono">Monocoque + drop-in pan</option>' +
+      '</select></div>' +
       '</div>';
     html += '<div class="derived" id="derived"></div>';
     html += '<div class="warnings" id="warnings"></div>';
