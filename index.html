@@ -460,6 +460,46 @@
   }
 
 
+  /* ---------- FINISH REFERENCE ---------- */
+  var FINISH = {
+    powder: {
+      name: 'A · HIGH-TEMP POWDER OVER GALV',
+      as: 'Tagwood uses plain heat-resistant paint — this is a grade above it',
+      temp: '250–550 °C continuous (silicone polyester)',
+      life: '20 yr+ · UV resistant · best colour range',
+      risk: 'Not food safe — external surfaces only',
+      source: 'Powder: Dulux / Interpon (Akzo) architectural exterior grade. Galv: hot-dip to AS/NZS 4680. Applied at the fabricator.',
+      sw: [['#7C8468','SAGE'],['#E4DFD2','BONE'],['#26261F','CHARCOAL']]
+    },
+    ceramic: {
+      name: 'B · CERAMIC BONDED COATING',
+      as: 'The Gozney Dome route',
+      temp: 'up to ~980 °C · resists thermal shock, quench-safe',
+      life: '~5 yr · UV stable · water resistant',
+      risk: 'Shorter service life than powder; narrow colour range; licensed applicators only',
+      source: 'Cerakote (NIC Industries, USA) or equivalent industrial ceramic. Air / low-bake cured by a licensed applicator — adds a supply-chain step.',
+      sw: [['#2B2B27','GRAPHITE'],['#DED8C8','STONE'],['#6E6F66','SLATE']]
+    },
+    enamel: {
+      name: 'C · PORCELAIN ENAMEL',
+      as: 'The Weber kettle route',
+      temp: '500–600 °C service · fired at 815 °C',
+      life: 'Indefinite if unchipped · non-porous · food safe',
+      risk: 'A chip is bare steel with no protection. Poor fit for a welded box on castors.',
+      source: 'Enamel frit (Ferro / Prince) on decarburised enamelling-grade steel — NOT the 3.2 CRS specified. Fired in-line at an enamelling plant, Asia.',
+      sw: [['#1C1C1A','JET'],['#F0EAD8','IVORY'],['#4A5A46','BOTTLE']]
+    },
+    coastal: {
+      name: 'D · COASTAL — 316 + POWDER',
+      as: 'Tagwood sell an all-stainless SS model; this is the smarter half of it',
+      temp: 'As route A · 316 on cold-but-exposed parts only',
+      life: 'Best corrosion life in salt air',
+      risk: '316 gives no high-temp benefit over 304 — never specify it on hot parts',
+      source: '316 sheet/tube with mill certs, cart + bench + gantry + external fasteners. Hot parts stay 304.',
+      sw: [['#7C8468','SAGE'],['#C4C8C9','316 BRUSHED'],['#26261F','CHARCOAL']]
+    }
+  };
+
   /* ---------- COSTING ENGINE (AUD, FOB China basis, batch-10 reference) ---------- */
   var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5,
                plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false };
@@ -501,6 +541,8 @@
     var cartPc = a.cart * (35 + 25);
     if (COST.finish === 'enamel')
       return a.casing2 * 90 * 1.12 + cartPc + 1600/qty + 120/qty;
+    if (COST.finish === 'ceramic')
+      return a.casing1 * (78 + 25) + cartPc + 600/qty + 120/qty;
     var pc = a.casing1 * (49 + 25) + cartPc + 240/qty;
     if (COST.finish === 'coastal') pc += 180;   /* 316 upcharge: cart, bench, gantry, fasteners */
     return pc;
@@ -536,6 +578,39 @@
   }
 
   function money(n) { return '$' + Math.round(n).toLocaleString(); }
+
+  function finishCard() {
+    var f = FINISH[COST.finish], qty = COST.batch;
+    var sw = f.sw.map(function (c) {
+      return '<div style="display:flex;flex-direction:column;gap:4px;align-items:center">' +
+        '<div style="width:56px;height:38px;background:' + c[0] + ';border:1.5px solid var(--ink)"></div>' +
+        '<div style="font-size:9.5px;letter-spacing:.06em">' + c[1] + '</div>' +
+        '<div style="font-size:9px;color:var(--muted)">' + c[0] + '</div></div>';
+    }).join('');
+    /* per-unit finish cost for each route, same batch, so they are comparable */
+    var keep = COST.finish, row = '';
+    ['powder','ceramic','enamel','coastal'].forEach(function (k) {
+      COST.finish = k;
+      var c = finishCost(qty) * (COST.xl ? 1.18 : 1);
+      row += '<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0' +
+        (k === keep ? ';font-weight:700' : ';color:var(--muted)') + '">' +
+        '<span>' + FINISH[k].name.split(' · ')[0] + ' ' + FINISH[k].name.split(' · ')[1] + '</span>' +
+        '<span style="font-variant-numeric:tabular-nums">' + money(c) + '</span></div>';
+    });
+    COST.finish = keep;
+    return '<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--ink);' +
+      'display:grid;grid-template-columns:auto 1fr 1fr;gap:22px;align-items:start">' +
+      '<div style="display:flex;gap:8px">' + sw + '</div>' +
+      '<div class="cnote" style="color:var(--ink)">' +
+        '<b>' + f.name + '</b><br><span style="color:var(--muted)">' + f.as + '</span><br><br>' +
+        '<b>TEMP</b> ' + f.temp + '<br><b>LIFE</b> ' + f.life + '<br>' +
+        '<span class="cwarn"><b>RISK</b> ' + f.risk + '</span></div>' +
+      '<div class="cnote">' +
+        '<b style="color:var(--ink)">MATERIAL SOURCE</b><br>' + f.source +
+        '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line)">' +
+        '<b style="color:var(--ink)">ALL FOUR AT BATCH ' + qty + '</b>' + row + '</div></div>' +
+      '</div>';
+  }
 
   function renderCost() {
     var m = costModel();
@@ -588,6 +663,7 @@
           '</div>' +
         '</div>' +
       '</div>' +
+      finishCard() +
       '<div class="cnote" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">' +
       'ESTIMATES, NOT QUOTES. Part prices are judgement at a batch-10 reference and scale by the volume factor; ' +
       'coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
@@ -614,9 +690,10 @@
       '<option value="10">10</option><option value="50" selected>50</option>' +
       '<option value="200">200</option><option value="500">500</option></select></div>' +
       '<div class="crow"><label for="c_finish">Finish route</label>' +
-      '<select id="c_finish" data-c="finish"><option value="powder">Powder + galv</option>' +
-      '<option value="enamel">Enamel casing</option>' +
-      '<option value="coastal">Coastal 316</option></select></div>' +
+      '<select id="c_finish" data-c="finish"><option value="powder">A · Powder + galv</option>' +
+      '<option value="ceramic">B · Ceramic bonded</option>' +
+      '<option value="enamel">C · Porcelain enamel</option>' +
+      '<option value="coastal">D · Coastal 316 + powder</option></select></div>' +
       '<div class="crow"><label for="c_freight">Freight</label>' +
       '<select id="c_freight" data-c="freight"><option value="lcl">Sea LCL</option>' +
       '<option value="fcl">Sea FCL (20ft)</option></select></div>' +
