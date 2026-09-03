@@ -579,7 +579,7 @@
       var scale = (r[2] === 'body' || r[2] === 'cart' || r[2] === 'deck') ? xl : 1;
       var amt = r[1], nm = r[0];
       if (COST.liner && nm.indexOf('FIREBRICK') === 0) {
-        nm = 'VERMICULITE BOARD + CERAMIC FIBRE (FLOOR BRICK ONLY)'; amt = 45;
+        nm = '304 SS WALL SKIN + SEALED CERAMIC FIBRE + 5mm FLOOR PLATE'; amt = 95;
       }
       if (COST.wrap && nm.indexOf('BODY CARCASS') === 0) {
         nm = 'BODY CARCASS, ONE-PIECE FOLDED WRAP, 3.2 CRS'; amt = 205;
@@ -637,13 +637,15 @@
     if (!COST.liner && !COST.wrap) return '';
     var b = '';
     if (COST.liner) b +=
-      '<div style="margin-bottom:8px"><b style="color:var(--ink)">INSULATED LINER — vermiculite board + ceramic fibre, floor brick only</b><br>' +
-      'A parrilla is an open fire: heat leaves upward to the grate. The walls only need to insulate, not store energy — ' +
-      'so thermal mass on the walls is weight you carry for nothing. Vermiculite board is rated 1100 °C, cuts on a saw, ' +
-      'and runs about half the price of fireclay. Frees the geometry from square brick, saves ~25 kg.<br>' +
-      '<span style="color:var(--muted)">REAL WORLD: standard liner across the wood-stove industry (Contura, Chilli Penguin, Cubic Mini). ' +
-      'Ooni Karu and Koda use a double-wall stainless shell with ceramic fibre and no brick at all. ' +
-      'Gozney Dome pairs ceramic fibre with calcium silicate. Watch point: vermiculite is fragile to impact — keep it off the floor.</span></div>';
+      '<div style="margin-bottom:8px"><b style="color:var(--ink)">SS WALL SKIN + SEALED CAVITY — 304 walls, ceramic fibre between skins, 5 mm floor plate</b><br>' +
+      'A parrilla is an open fire: heat leaves upward to the grate, so the walls insulate rather than store energy. ' +
+      'But this firebox is open to the sky and <b>will be rained into</b> — so nothing porous can sit on the fire face. ' +
+      '304 stainless cannot absorb water, is thin enough to roll or curve, and heat-tints to a patina rather than failing. ' +
+      'The ceramic fibre goes <b>sealed in the wall cavity</b>, never touched by flame or weather.<br>' +
+      '<span style="color:var(--muted)">REAL WORLD: exactly the Ooni Karu / Koda arrangement — double-wall stainless with encapsulated ' +
+      'ceramic fibre and no brick at all; Gozney Dome is a 304 inner shell with fibre plus calcium silicate. ' +
+      'REJECTED: vermiculite board — hygroscopic, soaks up rain and spalls on the next fire. Fine in a dry indoor stove, wrong here. ' +
+      'Requires the item-10 water drain to be treated as structural.</span></div>';
     if (COST.wrap) b +=
       '<div><b style="color:var(--ink)">ONE-PIECE FOLDED WRAP — front + both ends off a single blank</b><br>' +
       'Four corner welds become one seam: less welding, less grinding, less distortion, no ash leaks at the corners. ' +
@@ -790,7 +792,7 @@
       '<div class="crow"><label for="o_xl">XL body (+500 W)</label><input id="o_xl" data-o="xl" type="checkbox"></div>' +
       '</div>';
     html += '<div class="grp"><h2>BUILD METHOD</h2>' +
-      '<div class="crow"><label for="o_liner">Insulated liner (no wall brick)</label><input id="o_liner" data-o="liner" type="checkbox"></div>' +
+      '<div class="crow"><label for="o_liner">SS wall skin + sealed cavity</label><input id="o_liner" data-o="liner" type="checkbox"></div>' +
       '<div class="crow"><label for="o_wrap">One-piece folded wrap</label><input id="o_wrap" data-o="wrap" type="checkbox"></div>' +
       '</div>';
     html += '<div class="derived" id="derived"></div>';

@@ -211,31 +211,40 @@ walls only need to (a) not warp, (b) not cook the outer skin, (c) hold the coals
 Firebrick on the *walls* is a thermal-mass answer to what is actually an insulation
 question. It's 35 kg, it forces square geometry, and it reads cheap.
 
-### Liner options
+### Fire-face materials — water exposure is the governing test
 
-| Material | Rating | Weight | Cost | Real-world use |
+**This is an open-top firebox that lives outdoors and will be rained into.** Any porous or
+hygroscopic material on the fire face absorbs water, then spalls when the trapped moisture
+flashes to steam on the next fire. That rules out most stove-liner practice, which assumes
+a dry indoor appliance.
+
+**And the placement rule: insulation belongs sealed in the wall cavity, not on the fire
+face.** Ooni and Gozney both encapsulate ceramic fibre between two skins so neither flame
+nor rain ever reaches it.
+
+| Material on fire face | Rating | Weight | Wet risk | Verdict |
 |---|---|---|---|---|
-| Fireclay firebrick *(current)* | ~1300 °C | ~35 kg | base | Tagwood BBQ03SI, bottom + side walls |
-| **Vermiculite board + ceramic fibre** *(recommended)* | ~1100 °C | ~10 kg | **~50% of fireclay** | Industry-standard wood-stove liner — Contura, Chilli Penguin, Cubic Mini |
-| Ceramic fibre board, vacuum-formed | 1000–1400 °C | ~6 kg | + tooling | **Any shape including curves** — how curved oven liners are made |
-| Ceramic fibre blanket, double skin | 1000–1260 °C | ~4 kg | lowest | **Ooni Karu / Koda — double-wall stainless, no brick at all** |
-| Castable refractory | ~1400 °C | heavy | low material | Pours to any geometry, but heavy and slow to cure |
-| Ventilated air gap 20–25 mm | n/a | 0 kg | ~$0 | Use *with* a liner, not instead of one |
+| **304 SS wall skin, ribbed, air gap behind** *(recommended — walls)* | oxidation OK to 870 °C intermittent | ~8 kg | **none** | Non-porous, thin so geometry is free, heat-tints to patina. **Ooni Karu/Koda, Gozney inner shell** |
+| **5 mm carbon plate** *(recommended — floor)* | unlimited w/ mass | ~20 kg | **none** | Coals sit and get raked here — needs mass and abrasion, not insulation. Oil-seasons, sheds water |
+| Dense fireclay firebrick *(traditional)* | ~1300 °C | ~35 kg | low–med | Proven outdoors by thousands of pizza ovens and by Tagwood. Heavy, forces square geometry. Valid floor option |
+| Cordierite stone | excellent thermal shock | ~14 kg | med | Gozney's floor choice (30 mm). Best thermal shock of the refractories, but still porous — soaked then fired hard can crack |
+| Dense castable refractory | ~1400 °C | heavy | low–med | Moulds to any geometry; low-porosity grades handle weather. Heavy, slow to cure |
+| ~~Vermiculite board~~ | ~1100 °C | ~10 kg | **FAILS** | **REJECTED.** Hygroscopic — absorbs water like a sponge, cracks when heated wet. Only viable sealed inside a dry indoor stove |
 
-**Watch point:** vermiculite is fragile to impact — walls only, never the floor.
+### Recommended stack — nothing porous exposed
 
-### Recommended stack
+- **Floor** — 5 mm carbon plate (or dense firebrick). Mass + abrasion where coals sit
+- **Walls** — 304 SS skin, ribbed for stiffness, non-porous
+- **Cavity** — ceramic fibre **sealed between inner and outer skin**, never exposed to fire
+  or weather. The Ooni/Gozney arrangement
+- **Drainage** — BOM item 10 water drain is **structural, not optional**. An open firebox
+  must shed rain
 
-- **Floor** — firebrick or 5 mm plate (coals sit and abrade here; keep mass and toughness)
-- **Walls** — vermiculite board + ceramic fibre blanket, no wall brick
-- **Skin** — 20–25 mm ventilated air gap to the outer panel
+**Result: ~85 kg vs 110 kg, geometry freed from square brick, zero water-absorbent
+material anywhere on the fire face.**
 
-**Result: ~85 kg vs 110 kg, geometry no longer tied to square brick, cost broadly
-neutral.** Freight and last-mile both improve.
-
-Sources: [Vitcas vermiculite board](https://shop.vitcas.com/vermiculite-fire-board-fire-proof-insulation.html),
-[Chilli Penguin](https://chillipenguin.co.uk/faqs/looking-after-your-penguin-wood-burning-stove-maintenance/vermiculite-fire-bricks-wood-stove-fire-bricks/),
-[Ooni Karu](https://eu.ooni.com/products/ooni-karu).
+Sources: [Ooni Karu](https://eu.ooni.com/products/ooni-karu),
+[Gozney Dome construction](https://help.gozney.com/hc/en-us/articles/4833034452241-What-is-the-Dome-made-of).
 
 ### The moulded look without press tooling
 
@@ -363,7 +372,7 @@ free freight), marketing, payment fees.
 | 4 | Module carriage section | TBC |
 | 5 | RAL match for Sage | Pick from real powder swatches, not screen colour |
 | 6 | Welded vs part flat-pack | Changes freight class materially |
-| 7 | Insulated liner vs firebrick | **Measure outer skin temperature on the prototype** |
+| 7 | SS wall skin + sealed cavity vs firebrick | **Measure outer skin temp AND run a rain-then-fire test on the prototype** |
 | 8 | Brand guidelines PDF | Not yet supplied — apply once received |
 | 9 | EX-02 exploded sheet | Still shows pre-Rev-F architecture; GA-01 governs |
 
