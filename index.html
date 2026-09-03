@@ -129,6 +129,21 @@
   }
   .tog input { accent-color: var(--sage-deep); width: 15px; height: 15px; cursor: pointer; }
   #threeWrap { height: 500px; position: relative; }
+  .crow { display: flex; align-items: center; gap: 10px; }
+  .crow label { flex: 1; font-size: 12px; }
+  .crow select, .crow input[type=number] {
+    width: 108px; font-family: inherit; font-size: 12px; font-weight: 500;
+    color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); padding: 5px 6px;
+  }
+  .crow input[type=checkbox] { accent-color: var(--sage-deep); width: 15px; height: 15px; cursor: pointer; }
+  .cout { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; font-size: 12.5px; }
+  .cout .k { color: var(--muted); }
+  .cout .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .cbig { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cnote { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .cwarn { color: var(--warn); font-weight: 600; }
+  .cbar { display: flex; height: 10px; margin: 6px 0 2px 0; }
+  .cbar span { display: block; }
   #threeWrap canvas { display: block; }
   /* svg classes driven by tokens so both themes hold */
   .st  { stroke: var(--ink); fill: none; }
@@ -176,6 +191,13 @@
       <div id="threeWrap">
         <div id="threeMsg" class="title-sub" style="padding: 20px;" hidden>3D view could not load here.</div>
       </div>
+    </div>
+    <div class="sheet">
+      <div class="sheet-head">
+        <span>COSTING &#8212; LIVE PRODUCTION MODEL &#183; AUD</span>
+        <span class="title-sub" id="costBasis"></span>
+      </div>
+      <div id="costOut"></div>
     </div>
     <div class="chain" id="chain"></div>
   </div>
@@ -437,6 +459,141 @@
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + vw + ' ' + vh + '">' + o.join('') + '</svg>';
   }
 
+
+  /* ---------- COSTING ENGINE (AUD, FOB China basis, batch-10 reference) ---------- */
+  var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5,
+               plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false };
+
+  var CORE = [
+    ['BODY CARCASS, FOLDED + WELDED, 3.2 CRS', 230, 'body'],
+    ['FIREBRICK LINER SET',                     60, 'body'],
+    ['GRILL MODULE x2, 304 V-CHANNEL',         190, 'deck'],
+    ['SECONDARY GRATE 304',                     45, 'cook'],
+    ['GRIDDLE 304 3.0 PLATE',                   55, 'cook'],
+    ['BRASERO CAGE 304, LIFT-OUT',             130, 'cook'],
+    ['LIFT GEAR: WHEEL, SPINDLE, CHAIN',       150, 'gear'],
+    ['HANGING RAIL + 4 S-HOOKS, 304',           45, 'gear'],
+    ['WATER DRAIN + ASH MANAGEMENT',            35, 'body'],
+    ['CART FRAME + SLATTED SHELF',             150, 'cart'],
+    ['CASTERS x4 D150, 2 LOCKING',              60, 'cart'],
+    ['MODULE CARRIAGE, 2-BAY, 304',            140, 'deck'],
+    ['FASTENERS / HARDWARE',                    40, 'cart']
+  ];
+  var OPTS = [
+    ['plancha', 'PLANCHA MODULE 304 5.0',      110, 'deck'],
+    ['bench',   'SIDE BENCH 304 1.5',           60, 'cook'],
+    ['tools',   'TOOL SET: SHOVEL + POKER',     40, 'cook'],
+    ['door',    'FRONT DOOR, CRS 3.2',          50, 'body'],
+    ['lift2',   '2nd LIFT GEAR (INDEP. BAYS)', 130, 'gear']
+  ];
+  var VOL = { 1: 2.15, 10: 1.00, 50: 0.86, 200: 0.78, 500: 0.74 };
+
+  /* areas are read live off the drawing state, so geometry edits move the cost */
+  function coatAreas() {
+    var s = state, band = s.fireRim - s.hearthPan, W = s.overallW, D = s.overallD;
+    var casing1 = (2*W*band + 2*D*band + (COST.door ? 400*300 : 0)) / 1e6;
+    var cart = 14.25 * 0.1 * (W/1450);
+    return { casing1: casing1, casing2: casing1*2, cart: cart };
+  }
+
+  function finishCost(qty) {
+    var a = coatAreas();
+    var cartPc = a.cart * (35 + 25);
+    if (COST.finish === 'enamel')
+      return a.casing2 * 90 * 1.12 + cartPc + 1600/qty + 120/qty;
+    var pc = a.casing1 * (49 + 25) + cartPc + 240/qty;
+    if (COST.finish === 'coastal') pc += 180;   /* 316 upcharge: cart, bench, gantry, fasteners */
+    return pc;
+  }
+
+  function costModel() {
+    var qty = COST.batch, vm = VOL[qty] || 1;
+    var xl = COST.xl ? 1.18 : 1;                /* XL: +500 W on carcass, deck, cart, crate */
+    var lines = [], groups = {};
+    function push(name, amt, grp) {
+      lines.push([name, amt]);
+      groups[grp] = (groups[grp] || 0) + amt;
+    }
+    CORE.forEach(function (r) {
+      var scale = (r[2] === 'body' || r[2] === 'cart' || r[2] === 'deck') ? xl : 1;
+      push(r[0], r[1] * vm * scale, r[2]);
+    });
+    OPTS.forEach(function (o) {
+      if (COST[o[0]]) push(o[1], o[2] * vm, o[3]);
+    });
+    var fin = finishCost(qty) * xl;
+    push('COATING / FINISH — ' + COST.finish.toUpperCase(), fin, 'finish');
+    push('EXPORT CRATE', 70 * vm * xl, 'ship');
+    push('ASSEMBLY / QC / PASSIVATION', 120 * vm, 'body');
+
+    var fob = lines.reduce(function (t, l) { return t + l[1]; }, 0);
+    var freight = (COST.freight === 'fcl' ? 155 : 260) * xl;
+    var landed = fob + freight + 0 + 25 + 90;
+    var rrp = landed * COST.margin * 1.10;
+    var gm = (1 - 1/COST.margin) * 100;
+    return { qty: qty, lines: lines, groups: groups, fob: fob, freight: freight,
+             landed: landed, rrp: rrp, gm: gm, vm: vm };
+  }
+
+  function money(n) { return '$' + Math.round(n).toLocaleString(); }
+
+  function renderCost() {
+    var m = costModel();
+    var TAG_LO = 4500, TAG_HI = 5500;
+    var pos = m.rrp < TAG_LO ? 'UNDER TAGWOOD — room to price up'
+            : m.rrp <= TAG_HI ? 'INSIDE TAGWOOD BAND'
+            : 'ABOVE TAGWOOD — must justify on the modular deck';
+    var posCls = m.rrp > TAG_HI ? 'cwarn' : '';
+
+    var cols = { body:'#7c8468', deck:'#59614a', cook:'#c4c8c9', gear:'#9aa0a2',
+                 cart:'#26261f', finish:'#c9a27a', ship:'#d3cfc0' };
+    var bar = '', tot = m.fob;
+    Object.keys(m.groups).forEach(function (g) {
+      bar += '<span style="width:' + (m.groups[g]/tot*100).toFixed(1) + '%;background:' + (cols[g]||'#888') + '"></span>';
+    });
+
+    var rows = m.lines.map(function (l) {
+      return '<div class="k">' + l[0] + '</div><div class="v">' + money(l[1]) + '</div>';
+    }).join('');
+
+    var deckShare = ((m.groups.deck || 0) / m.fob * 100).toFixed(0);
+
+    document.getElementById('costBasis').textContent =
+      'BATCH ' + m.qty + ' · ' + COST.finish.toUpperCase() + ' · ' + COST.freight.toUpperCase() + (COST.xl ? ' · XL' : '');
+
+    document.getElementById('costOut').innerHTML =
+      '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:26px;">' +
+        '<div><div class="cout">' + rows +
+          '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">FOB SUBTOTAL</div>' +
+          '<div class="v" style="border-top:2px solid var(--ink);padding-top:6px">' + money(m.fob) + '</div>' +
+        '</div>' +
+        '<div class="cbar">' + bar + '</div>' +
+        '<div class="cnote">Modular deck (grates + plancha + carriage) = <b>' + deckShare + '%</b> of build cost — the differentiator. Cut elsewhere first.</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="cout">' +
+            '<div class="k">FOB</div><div class="v">' + money(m.fob) + '</div>' +
+            '<div class="k">SEA FREIGHT (' + COST.freight.toUpperCase() + ')</div><div class="v">' + money(m.freight) + '</div>' +
+            '<div class="k">DUTY — ChAFTA</div><div class="v">$0</div>' +
+            '<div class="k">INSURANCE</div><div class="v">$25</div>' +
+            '<div class="k">PORT / CUSTOMS / CARTAGE</div><div class="v">$90</div>' +
+            '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">LANDED ex-GST</div>' +
+            '<div class="v" style="border-top:2px solid var(--ink);padding-top:6px">' + money(m.landed) + '</div>' +
+          '</div>' +
+          '<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--ink)">' +
+            '<div class="k" style="font-size:11px;letter-spacing:.14em;color:var(--muted)">RRP inc GST @ ' + COST.margin.toFixed(1) + '×</div>' +
+            '<div class="cbig">' + money(m.rrp) + '</div>' +
+            '<div class="cnote">Gross margin ' + m.gm.toFixed(0) + '% · <span class="' + posCls + '">' + pos + '</span></div>' +
+            '<div class="cnote" style="margin-top:8px">Tagwood BBQ03SI benchmark: $4,500–5,500 · volume factor ' + m.vm.toFixed(2) + '×</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cnote" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">' +
+      'ESTIMATES, NOT QUOTES. Part prices are judgement at a batch-10 reference and scale by the volume factor; ' +
+      'coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
+      'Replace with real quotes before committing.</div>';
+  }
+
   /* ---------- ui ---------- */
   function buildRail() {
     var rail = document.getElementById('rail');
@@ -451,11 +608,51 @@
       });
       html += '</div>';
     });
+    html += '<div class="grp"><h2>PRODUCTION RUN</h2>' +
+      '<div class="crow"><label for="c_batch">Batch size</label>' +
+      '<select id="c_batch" data-c="batch"><option value="1">1 (prototype)</option>' +
+      '<option value="10">10</option><option value="50" selected>50</option>' +
+      '<option value="200">200</option><option value="500">500</option></select></div>' +
+      '<div class="crow"><label for="c_finish">Finish route</label>' +
+      '<select id="c_finish" data-c="finish"><option value="powder">Powder + galv</option>' +
+      '<option value="enamel">Enamel casing</option>' +
+      '<option value="coastal">Coastal 316</option></select></div>' +
+      '<div class="crow"><label for="c_freight">Freight</label>' +
+      '<select id="c_freight" data-c="freight"><option value="lcl">Sea LCL</option>' +
+      '<option value="fcl">Sea FCL (20ft)</option></select></div>' +
+      '<div class="crow"><label for="c_margin">Margin multiple</label>' +
+      '<input id="c_margin" data-c="margin" type="number" min="1.2" max="5" step="0.1" value="2.5"></div>' +
+      '</div>';
+    html += '<div class="grp"><h2>FEATURES</h2>' +
+      '<div class="crow"><label for="o_plancha">Plancha module</label><input id="o_plancha" data-o="plancha" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_bench">Side bench</label><input id="o_bench" data-o="bench" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_tools">Tool set</label><input id="o_tools" data-o="tools" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_door">Front door</label><input id="o_door" data-o="door" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_lift2">2nd lift gear</label><input id="o_lift2" data-o="lift2" type="checkbox"></div>' +
+      '<div class="crow"><label for="o_xl">XL body (+500 W)</label><input id="o_xl" data-o="xl" type="checkbox"></div>' +
+      '</div>';
     html += '<div class="derived" id="derived"></div>';
     html += '<div class="warnings" id="warnings"></div>';
     rail.innerHTML = html;
+    rail.addEventListener('change', function (e) {
+      var c = e.target && e.target.getAttribute('data-c');
+      var o = e.target && e.target.getAttribute('data-o');
+      if (c) {
+        COST[c] = (c === 'batch') ? Number(e.target.value)
+                : (c === 'margin') ? Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5))
+                : e.target.value;
+        renderCost();
+      } else if (o) {
+        COST[o] = e.target.checked;
+        renderCost();
+      }
+    });
     rail.addEventListener('input', function (e) {
       var k = e.target && e.target.getAttribute('data-k');
+      if (e.target && e.target.getAttribute('data-c') === 'margin') {
+        COST.margin = Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5));
+        renderCost();
+      }
       if (!k) return;
       var v = Number(e.target.value);
       if (isFinite(v) && v >= 1 && v <= 5000) {
@@ -495,6 +692,7 @@
       pill.textContent = w.length + ' CHECK' + (w.length > 1 ? 'S' : '') + ' FAILING';
     }
     if (scene3) build3();
+    renderCost();
   }
 
   /* pan + zoom on the 2D drawing */
