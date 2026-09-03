@@ -519,9 +519,16 @@
   };
 
   /* ---------- COSTING ENGINE (AUD, FOB China basis, batch-10 reference) ---------- */
-  var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5, basis: 'quote', fx: 1.52,
+  var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5, basis: 'quote', fx: 1.45,
                plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false,
-               build: 'welded' };
+               build: 'welded', coo: true, cont: 15, gstReg: true };
+
+  /* --- REAL-WORLD IMPORT CONSTANTS (checked 3 Sep 2026, sources in the notes) --- */
+  var FX_SPOT   = 1.396;  /* AUD per USD. AUD/USD spot 0.7161, 3 Sep 2026 */
+  var FX_PLAN   = 1.45;   /* spot + ~4%: retail spread + drift over a 25-day lead time */
+  var DUTY_GEN  = 0.05;   /* general rate if no valid ChAFTA Certificate of Origin */
+  var GST_RATE  = 0.10;
+  var IPC_SEA   = 201;    /* AUD, ABF import processing charge, sea, consignment > $10k */
 
   var CORE = [
     ['BODY CARCASS, FOLDED + WELDED, 3.2 CRS', 230, 'body'],
@@ -645,7 +652,19 @@
       fob = lines.reduce(function (t, l) { return t + l[1]; }, 0);
       freight = TOSHINE_DDP * COST.fx;
     }
-    var landed = COST.basis === 'quote' ? fob + freight : fob + freight + 0 + 25 + 90;
+    /* --- import charges, AU rules. Duty is on the customs value (FOB). GST is on the
+       Value of Taxable Importation = customs value + international transport/insurance
+       + duty. IPC is per consignment, so it amortises over the batch. --- */
+    var duty = COST.coo ? 0 : fob * DUTY_GEN;
+    var voti = fob + freight + duty;
+    var gst  = voti * GST_RATE;
+    var ipc  = IPC_SEA / qty;
+    var cont = (fob + freight) * (COST.cont / 100);
+    var other = COST.basis === 'quote' ? 0 : 25 + 90;   /* built-up basis carried QC + PL cover */
+
+    /* GST is recoverable if registered, so it is cash-out, not unit cost. */
+    var landed = fob + freight + duty + ipc + cont + other;
+    var cashOut = landed + (COST.gstReg ? 0 : gst);
     var rrp = landed * COST.margin * 1.10;
     var gm = (1 - 1/COST.margin) * 100;
     var kg = 110 * (COST.xl ? 1.15 : 1);
@@ -655,6 +674,7 @@
     if (!COST.bench) kg -= 4;
     return { qty: qty, lines: lines, groups: groups, fob: fob, freight: freight,
              landed: landed, rrp: rrp, gm: gm, vm: vm, kg: kg,
+             duty: duty, gst: gst, ipc: ipc, cont: cont, voti: voti, cashOut: cashOut,
              quoteBase: quoteBase, quoteLanded: (interp(TOSHINE, qty) + TOSHINE_DDP) * COST.fx,
              adders: adders };
   }
@@ -683,6 +703,52 @@
     return '<div class="fgrid">' + cards + '</div>' +
       '<div class="cnote" style="margin:-2px 0 12px 0">Click a finish to price the whole build on it. ' +
       'Reference: <b>Tagwood BBQ03SI uses plain heat-resistant paint</b> — below all four.</div>';
+  }
+
+  /* ---------- what is checked, what is assumed, what could bite ---------- */
+  function groundingCard() {
+    function row(state, txt) {
+      var c = state === 'ok' ? 'var(--ok)' : state === 'warn' ? 'var(--warn)' : 'var(--muted)';
+      var mark = state === 'ok' ? 'CHECKED' : state === 'warn' ? 'RISK' : 'ASSUMED';
+      return '<div style="display:grid;grid-template-columns:74px 1fr;gap:10px;padding:4px 0;' +
+        'border-top:1px solid var(--line)">' +
+        '<span style="color:' + c + ';font-size:9.5px;letter-spacing:.12em;padding-top:2px">' + mark + '</span>' +
+        '<span>' + txt + '</span></div>';
+    }
+    return '<div style="margin-top:14px;padding:13px 15px;border:2px solid var(--ink);' +
+      'background:var(--surface);font-size:11px;line-height:1.5">' +
+      '<div style="font-size:10px;letter-spacing:.16em;color:var(--muted);margin-bottom:8px">' +
+        'WHERE THE NUMBERS COME FROM</div>' +
+      row('ok', '<b>Unit price.</b> Toshine TSPC01L, offer V41: USD 600 / 490 / 460 / 430 / 395 at ' +
+        '1 / 10 / 25 / 50 / 100 units, ex works, plus USD 300 DDP Sydney. In-between batches are ' +
+        'log-interpolated across those five points.') +
+      row('ok', '<b>FX.</b> AUD/USD spot 0.7161 on 3 Sep 2026 = ' + FX_SPOT.toFixed(3) +
+        ' AUD per USD. Planning rate ' + FX_PLAN.toFixed(2) + '.') +
+      row('ok', '<b>Duty.</b> 0% under ChAFTA with a valid Certificate of Origin from an authorised ' +
+        'Chinese body. Without it, the general rate applies.') +
+      row('ok', '<b>GST.</b> 10% on the Value of Taxable Importation = customs value + international ' +
+        'transport and insurance + duty. Recoverable on the BAS if registered.') +
+      row('ok', '<b>Import processing charge.</b> AUD ' + IPC_SEA + ' per sea consignment over ' +
+        'AUD 10,000, lodged electronically. Per consignment, not per unit.') +
+      row('warn', '<b>&ldquo;DDP&rdquo; from a Chinese supplier is usually DAP in practice.</b> ' +
+        'A foreign supplier has no ABN and cannot remit your GST. Assume the GST, the processing ' +
+        'charge and the final leg land on you until the forwarder confirms otherwise in writing.') +
+      row('warn', '<b>The crate is volumetric, not heavy.</b> About 2.6 m&sup3; at ~127 kg. ' +
+        'LCL is charged on cubic metres, so freight per unit stays stubborn until the batch fills ' +
+        'a container. That is the real argument for a bigger first run, not the unit price curve.') +
+      row('warn', '<b>Their quote is not our product.</b> Half the wall thickness, no modular deck, ' +
+        'finish unspecified. Every adder above is our estimate over their baseline &mdash; ' +
+        'estimates, not quotes.') +
+      row('assumed', '<b>Not yet priced anywhere:</b> tooling and first-article sample, ' +
+        'pre-shipment inspection, product liability cover, warranty and spares, ' +
+        'Australian storage and last-mile delivery, returns.') +
+      row('assumed', '<b>Quote validity.</b> Offers of this kind usually hold 30 days and move with ' +
+        'steel and container rates. Re-confirm before committing to a batch.') +
+      '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted)">' +
+        'Sources: abf.gov.au (import processing charge, GST on imports) &middot; ' +
+        'dfat.gov.au ChAFTA &middot; FX spot 3 Sep 2026. ' +
+        'Everything marked ASSUMED is a hole in the model, not a number.</div>' +
+      '</div>';
   }
 
   function benchmarkCard() {
@@ -814,15 +880,26 @@
           '<div class="cout">' +
             '<div class="k">FOB</div><div class="v">' + money(m.fob) + '</div>' +
             (COST.basis === 'quote'
-              ? '<div class="k">DDP SYDNEY (in quote, USD ' + TOSHINE_DDP + ')</div><div class="v">' + money(m.freight) + '</div>' +
-                '<div class="k">DUTY / PORT / CARTAGE</div><div class="v">included in DDP</div>'
+              ? '<div class="k">DDP SYDNEY (quoted, USD ' + TOSHINE_DDP + ')</div><div class="v">' + money(m.freight) + '</div>'
               : '<div class="k">SEA FREIGHT (' + COST.freight.toUpperCase() + ')</div><div class="v">' + money(m.freight) + '</div>' +
-                '<div class="k">DUTY — ChAFTA</div><div class="v">$0</div>' +
-                '<div class="k">INSURANCE</div><div class="v">$25</div>' +
-                '<div class="k">PORT / CUSTOMS / CARTAGE</div><div class="v">$90</div>') +
-            '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">LANDED ex-GST</div>' +
+                '<div class="k">INSURANCE + PORT / CARTAGE</div><div class="v">$115</div>') +
+            '<div class="k">DUTY ' + (COST.coo
+                ? '&mdash; ChAFTA, valid COO</div><div class="v" style="color:var(--ok)">$0</div>'
+                : '&mdash; NO COO, general 5%</div><div class="v" style="color:var(--warn)">' + money(m.duty) + '</div>') +
+            '<div class="k">IMPORT PROCESSING (' + money(IPC_SEA) + ' &divide; ' + m.qty + ')</div>' +
+              '<div class="v">' + money(m.ipc) + '</div>' +
+            '<div class="k">CONTINGENCY ' + COST.cont + '%</div><div class="v">' + money(m.cont) + '</div>' +
+            '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">LANDED COST ex-GST</div>' +
             '<div class="v" style="border-top:2px solid var(--ink);padding-top:6px">' + money(m.landed) + '</div>' +
+            '<div class="k" style="color:var(--muted)">GST 10% on VoTI ' + money(m.voti) + '</div>' +
+            '<div class="v" style="color:var(--muted)">' + money(m.gst) +
+              (COST.gstReg ? ' <span style="font-size:9px">CLAIMED BACK</span>' : ' <span style="font-size:9px;color:var(--warn)">A COST</span>') + '</div>' +
+            '<div class="k" style="color:var(--muted)">CASH OUT PER UNIT</div>' +
+            '<div class="v" style="color:var(--muted)">' + money(m.cashOut) + '</div>' +
           '</div>' +
+          '<div class="cnote" style="margin-top:8px">Working capital for this batch: <b style="color:var(--ink)">' +
+            money(m.cashOut * m.qty) + '</b> out before the first sale' +
+            (COST.gstReg ? ', with ' + money(m.gst * m.qty) + ' GST back on the next BAS.' : '.') + '</div>' +
           '<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--ink)">' +
             '<div class="k" style="font-size:11px;letter-spacing:.14em;color:var(--muted)">RRP inc GST @ ' + COST.margin.toFixed(1) + '×</div>' +
             '<div class="cbig">' + money(m.rrp) + '</div>' +
@@ -840,9 +917,9 @@
       (COST.basis === 'quote'
         ? 'BASELINE IS A REAL QUOTE (Toshine TSPC01L, V41). The adders over it are estimates. '
         : 'BUILT-UP ESTIMATE — part prices are judgement and ran about 2x the real quote. Kept for comparison only. ') +
-      'Coating cost is computed live from the drawing geometry; ' +
-      'coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
-      'Replace with real quotes before committing.</div>';
+      'Coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
+      'Replace with real quotes before committing.</div>' +
+      groundingCard();
   }
 
   /* ---------- ui ---------- */
@@ -867,7 +944,9 @@
       '<option value="quote">Toshine quote (real)</option>' +
       '<option value="est">Built-up estimate</option></select></div>' +
       '<div class="crow"><label for="c_fx">FX AUD per USD</label>' +
-      '<input id="c_fx" data-c="fx" type="number" min="1" max="2.5" step="0.01" value="1.52"></div>' +
+      '<input id="c_fx" data-c="fx" type="number" min="1" max="2.5" step="0.01" value="' + FX_PLAN + '"></div>' +
+      '<div class="cnote" style="margin:-4px 0 8px 0">Spot ' + FX_SPOT.toFixed(3) +
+      ' (3 Sep 26). Planning at ' + FX_PLAN.toFixed(2) + ' &mdash; spread + drift over a 25-day lead time.</div>' +
       '<div class="crow"><label for="c_finish">Finish route</label>' +
       '<select id="c_finish" data-c="finish"><option value="powder">A · Powder + galv</option>' +
       '<option value="ceramic">B · Ceramic bonded</option>' +
@@ -878,6 +957,16 @@
       '<option value="fcl">Sea FCL (20ft)</option></select></div>' +
       '<div class="crow"><label for="c_margin">Margin multiple</label>' +
       '<input id="c_margin" data-c="margin" type="number" min="1.2" max="5" step="0.1" value="2.5"></div>' +
+      '</div>';
+    html += '<div class="grp"><h2>IMPORT &amp; RISK</h2>' +
+      '<div class="crow"><label for="o_coo">ChAFTA cert. of origin held</label>' +
+      '<input id="o_coo" data-o="coo" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_gstReg">GST registered (claim back)</label>' +
+      '<input id="o_gstReg" data-o="gstReg" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="c_cont">Contingency %</label>' +
+      '<input id="c_cont" data-c="cont" type="number" min="0" max="50" step="1" value="15"></div>' +
+      '<div class="cnote" style="margin-top:6px">Untick the COO and duty goes to 5% of FOB. ' +
+      'Untick GST registration and the 10% stops being recoverable and becomes real cost.</div>' +
       '</div>';
     html += '<div class="grp"><h2>FEATURES</h2>' +
       '<div class="crow"><label for="o_plancha">Plancha module</label><input id="o_plancha" data-o="plancha" type="checkbox" checked></div>' +
@@ -904,7 +993,8 @@
       if (c) {
         COST[c] = (c === 'batch') ? Math.max(1, Math.min(5000, Math.round(Number(e.target.value)) || 1))
                 : (c === 'margin') ? Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5))
-                : (c === 'fx') ? Math.max(1, Math.min(2.5, Number(e.target.value) || 1.52))
+                : (c === 'fx') ? Math.max(1, Math.min(2.5, Number(e.target.value) || FX_PLAN))
+                : (c === 'cont') ? Math.max(0, Math.min(50, Number(e.target.value) || 0))
                 : e.target.value;
         renderCost();
       } else if (o) {
@@ -917,7 +1007,8 @@
       var lc = e.target && e.target.getAttribute('data-c');
       if (lc === 'margin') { COST.margin = Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5)); renderCost(); }
       if (lc === 'batch')  { COST.batch  = Math.max(1, Math.min(5000, Math.round(Number(e.target.value)) || 1)); renderCost(); }
-      if (lc === 'fx')     { COST.fx     = Math.max(1, Math.min(2.5, Number(e.target.value) || 1.52)); renderCost(); }
+      if (lc === 'fx')     { COST.fx     = Math.max(1, Math.min(2.5, Number(e.target.value) || FX_PLAN)); renderCost(); }
+      if (lc === 'cont')   { COST.cont   = Math.max(0, Math.min(50, Number(e.target.value) || 0)); renderCost(); }
       if (!k) return;
       var v = Number(e.target.value);
       if (isFinite(v) && v >= 1 && v <= 5000) {

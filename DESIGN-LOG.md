@@ -465,3 +465,67 @@ free freight), marketing, payment fees.
 
 *Estimates in this document are for sizing and negotiation. Every price must be replaced
 with a real quote before commitment.*
+
+---
+
+## 11. Landed-cost grounding (3 Sep 2026)
+
+The calculator was rebased off a real supplier quote and then given a proper import chain.
+Numbers below are what the model now uses and where each one came from.
+
+### 11.1 Checked against a source
+
+| Input | Value | Source |
+|---|---|---|
+| Unit price, ex works | USD 600 / 490 / 460 / 430 / 395 at 1 / 10 / 25 / 50 / 100 | Toshine TSPC01L, offer V41 |
+| Sea freight | USD 300/unit, quoted DDP Sydney | Same offer |
+| Lead time | 25 working days | Same offer |
+| FX | AUD/USD spot 0.7161 = **1.396 AUD per USD** | Spot, 3 Sep 2026 |
+| FX planning rate | **1.45** (spot + ~4%) | Retail spread + drift over the lead time |
+| Duty | **0%** under ChAFTA, with a valid Certificate of Origin | DFAT ChAFTA |
+| Duty without a COO | 5% general rate on the customs value | — |
+| GST | 10% on customs value + international transport/insurance + duty | ABF |
+| Import processing charge | AUD 201 per sea consignment over AUD 10,000, lodged electronically | ABF |
+
+The earlier default FX of 1.52 was stale by about 8%. Fixed.
+
+### 11.2 Where the model is still guessing
+
+Marked ASSUMED in the builder, and not to be quoted from:
+
+- Every adder over the Toshine baseline (3.2 mm body, modular deck, plancha, finish upgrade,
+  monocoque). These are our estimates, not their prices. They are the single biggest source
+  of error left in the model.
+- Tooling and first-article sample. Not priced anywhere.
+- Pre-shipment inspection, product liability cover, warranty and spares provision,
+  Australian storage, last-mile delivery, returns.
+
+A 15% contingency now sits on FOB + freight to cover the shape of this, and it is adjustable.
+
+### 11.3 Two things that will bite if ignored
+
+**"DDP" from a Chinese supplier is usually DAP in practice.** A foreign supplier has no ABN
+and cannot remit Australian GST. Until a forwarder confirms otherwise in writing, assume the
+GST, the import processing charge and the final leg land on us, not on them.
+
+**The crate is volumetric, not heavy.** Roughly 2.6 m3 at about 127 kg. LCL is charged on
+cubic metres, so freight per unit barely improves until the batch fills a container. That —
+not the unit-price curve — is the real argument for a larger first run.
+
+### 11.4 What the model now says
+
+At the planning FX, ChAFTA duty free, 15% contingency, powder finish, our Rev G spec:
+
+| Batch | Landed ex-GST | RRP at 2.5x |
+|---|---|---|
+| 1 | ~$2,310 | ~$6,360 |
+| 10 | ~$1,950 | ~$5,350 |
+| 50 | ~$1,830 | ~$5,040 |
+| 250 | ~$1,770 | ~$4,870 |
+
+Read against the Tagwood BBQ03SI band of $4,500-5,500: **a batch of 10 at a 2.5x multiple
+prices us at the top of the benchmark, not inside it.** Either the first run goes bigger, the
+multiple comes down on run one, or the spec adders have to be defended on the showroom floor.
+That is a commercial decision, not a drawing one.
+
+*Estimates remain estimates. Multi-quote before committing.*
