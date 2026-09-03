@@ -519,7 +519,7 @@
   };
 
   /* ---------- COSTING ENGINE (AUD, FOB China basis, batch-10 reference) ---------- */
-  var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5,
+  var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5, basis: 'quote', fx: 1.52,
                plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false,
                build: 'welded' };
 
@@ -547,6 +547,44 @@
   ];
   var VOL = { 1: 2.15, 10: 1.00, 50: 0.86, 200: 0.78, 500: 0.74 };
 
+  /* --- REAL SUPPLIER QUOTE: Toshine TSPC01L Heavy-Duty Santa Maria, USD ex works --- */
+  var TOSHINE = [[1,600],[10,490],[25,460],[50,430],[100,395]];
+  var TOSHINE_DDP = 300;   /* USD/unit, sea freight DDP Sydney */
+  var TOSHINE_SPEC = '1620x710x1610 · 127 kg · 1.5-2.0 mm · AISI 304 / carbon · 25 working days';
+
+  function interp(tbl, q) {
+    if (q <= tbl[0][0]) return tbl[0][1];
+    if (q >= tbl[tbl.length-1][0]) return tbl[tbl.length-1][1];
+    for (var i = 1; i < tbl.length; i++) {
+      if (q <= tbl[i][0]) {
+        var a = tbl[i-1], b = tbl[i], f = (Math.log(q)-Math.log(a[0]))/(Math.log(b[0])-Math.log(a[0]));
+        return a[1] + (b[1]-a[1])*f;
+      }
+    }
+    return tbl[tbl.length-1][1];
+  }
+  function volFactor(q) {
+    var keys = Object.keys(VOL).map(Number).sort(function(a,b){return a-b;});
+    var tbl = keys.map(function(k){ return [k, VOL[k]]; });
+    return interp(tbl, q);
+  }
+
+  /* what our Rev G spec adds over the Toshine catalogue baseline (AUD/unit) */
+  function specAdders() {
+    var a = [];
+    a.push(['3.2 mm BODY (from their 1.5-2.0)', 110]);
+    a.push(['MODULAR 2-BAY DECK + CARRIAGE', 210]);
+    if (COST.plancha) a.push(['PLANCHA MODULE', 80]);
+    a.push(['FINISH UPGRADE — ' + FINISH[COST.finish].short, COST.finish === 'powder' ? 95 :
+            COST.finish === 'ceramic' ? 150 : COST.finish === 'enamel' ? 300 : 250]);
+    if (COST.build === 'mono') a.push(['MONOCOQUE SHELL + DROP-IN PAN', 135]);
+    if (COST.build === 'wrap') a.push(['FOLDED WRAP + SEALED CAVITY', 10]);
+    if (COST.bench) a.push(['SIDE BENCH', 35]);
+    if (COST.lift2) a.push(['2nd LIFT GEAR', 95]);
+    if (COST.xl)    a.push(['XL BODY (+500 W)', 180]);
+    return a;
+  }
+
   /* areas are read live off the drawing state, so geometry edits move the cost */
   function coatAreas() {
     var s = state, band = s.fireRim - s.hearthPan, W = s.overallW, D = s.overallD;
@@ -568,7 +606,7 @@
   }
 
   function costModel() {
-    var qty = COST.batch, vm = VOL[qty] || 1;
+    var qty = COST.batch, vm = volFactor(qty);
     var xl = COST.xl ? 1.18 : 1;                /* XL: +500 W on carcass, deck, cart, crate */
     var lines = [], groups = {};
     function push(name, amt, grp) {
@@ -598,7 +636,16 @@
 
     var fob = lines.reduce(function (t, l) { return t + l[1]; }, 0);
     var freight = (COST.freight === 'fcl' ? 155 : 260) * xl;
-    var landed = fob + freight + 0 + 25 + 90;
+    var quoteBase = interp(TOSHINE, qty) * COST.fx;
+    var adders = specAdders();
+    if (COST.basis === 'quote') {
+      lines = [['TOSHINE TSPC01L BASELINE (real quote, qty ' + qty + ')', quoteBase]];
+      groups = { body: quoteBase };
+      adders.forEach(function (a) { lines.push(['+ ' + a[0], a[1]]); groups.deck = (groups.deck||0) + a[1]; });
+      fob = lines.reduce(function (t, l) { return t + l[1]; }, 0);
+      freight = TOSHINE_DDP * COST.fx;
+    }
+    var landed = COST.basis === 'quote' ? fob + freight : fob + freight + 0 + 25 + 90;
     var rrp = landed * COST.margin * 1.10;
     var gm = (1 - 1/COST.margin) * 100;
     var kg = 110 * (COST.xl ? 1.15 : 1);
@@ -607,7 +654,9 @@
     if (!COST.plancha) kg -= 7;
     if (!COST.bench) kg -= 4;
     return { qty: qty, lines: lines, groups: groups, fob: fob, freight: freight,
-             landed: landed, rrp: rrp, gm: gm, vm: vm, kg: kg };
+             landed: landed, rrp: rrp, gm: gm, vm: vm, kg: kg,
+             quoteBase: quoteBase, quoteLanded: (interp(TOSHINE, qty) + TOSHINE_DDP) * COST.fx,
+             adders: adders };
   }
 
   function money(n) { return '$' + Math.round(n).toLocaleString(); }
@@ -634,6 +683,40 @@
     return '<div class="fgrid">' + cards + '</div>' +
       '<div class="cnote" style="margin:-2px 0 12px 0">Click a finish to price the whole build on it. ' +
       'Reference: <b>Tagwood BBQ03SI uses plain heat-resistant paint</b> — below all four.</div>';
+  }
+
+  function benchmarkCard() {
+    var m = costModel(), q = m.qty;
+    var tUSD = interp(TOSHINE, q);
+    var rows = TOSHINE.map(function (p) {
+      return '<div style="display:flex;justify-content:space-between;padding:2px 0' +
+        (Math.abs(p[0]-q) < 0.5 ? ';font-weight:700' : ';color:var(--muted)') + '">' +
+        '<span>' + p[0] + ' unit' + (p[0]>1?'s':'') + '</span><span>USD $' + p[1] + '</span></div>';
+    }).join('');
+    var delta = m.landed - m.quoteLanded;
+    return '<div style="margin-top:14px;padding:13px 15px;border:2px solid var(--ink);background:var(--surface);' +
+      'display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:22px;font-size:11px;line-height:1.55">' +
+      '<div><b style="color:var(--ink)">TOSHINE TSPC01L — REAL QUOTE</b><br>' +
+        '<span style="color:var(--muted)">' + TOSHINE_SPEC + '</span>' +
+        '<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--line)">' + rows + '</div>' +
+        '<div style="margin-top:5px;padding-top:5px;border-top:1px solid var(--line);display:flex;justify-content:space-between">' +
+        '<span>+ DDP Sydney</span><span>USD $' + TOSHINE_DDP + '</span></div></div>' +
+      '<div><b style="color:var(--ink)">AT YOUR BATCH OF ' + q + '</b><br>' +
+        '<div style="margin-top:7px">Toshine ex-works &nbsp;<b>USD $' + Math.round(tUSD) + '</b><br>' +
+        '+ DDP &nbsp;USD $' + TOSHINE_DDP + '<br>' +
+        '&times; FX ' + COST.fx.toFixed(2) + '<br>' +
+        '<span style="font-size:16px;font-weight:700">= ' + money(m.quoteLanded) + '</span> landed AUD</div>' +
+        '<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)">Your spec, this config<br>' +
+        '<span style="font-size:16px;font-weight:700">' + money(m.landed) + '</span><br>' +
+        '<span class="' + (delta > 0 ? 'cwarn' : 'ok') + '">' + (delta>0?'+':'') + money(delta) + ' over baseline</span></div></div>' +
+      '<div><b style="color:var(--ink)">WHY THEIRS IS CHEAPER — AND WHY IT IS NOT THE SAME PRODUCT</b><br>' +
+        '&ndash; <b>1.5&ndash;2.0 mm steel vs our 3.2 mm.</b> Their "heavy-duty" is half our wall. Tagwood is 3.2 &mdash; that is the grade we benchmarked.<br>' +
+        '&ndash; <b>No modular two-bay deck.</b> Our differentiator is not in their catalogue.<br>' +
+        '&ndash; <b>Finish unspecified.</b> "AISI 304 / carbon" says nothing about powder, galv, colour or UV.<br>' +
+        '&ndash; <b>Deeper body</b> (710 vs our 508) and 127 kg &mdash; a different footprint, not a like-for-like.<br>' +
+        '&ndash; <b>Their DDP $300/unit is dearer than my LCL estimate</b> &mdash; but it is door-delivered with duty in, which mine was not.<br>' +
+        '<span style="color:var(--muted)">Treat the quote as the floor for a catalogue unit and the adders as the price of being different.</span></div>' +
+      '</div>';
   }
 
   function methodCard() {
@@ -714,7 +797,8 @@
     var deckShare = ((m.groups.deck || 0) / m.fob * 100).toFixed(0);
 
     document.getElementById('costBasis').textContent =
-      'BATCH ' + m.qty + ' · ' + COST.finish.toUpperCase() + ' · ' + COST.freight.toUpperCase() + (COST.xl ? ' · XL' : '');
+      'BATCH ' + m.qty + ' · ' + (COST.basis === 'quote' ? 'TOSHINE QUOTE BASIS · FX ' + COST.fx.toFixed(2) : 'BUILT-UP ESTIMATE') +
+      ' · ' + COST.finish.toUpperCase() + (COST.xl ? ' · XL' : '');
 
     document.getElementById('costOut').innerHTML =
       finishPicker() +
@@ -729,10 +813,13 @@
         '<div>' +
           '<div class="cout">' +
             '<div class="k">FOB</div><div class="v">' + money(m.fob) + '</div>' +
-            '<div class="k">SEA FREIGHT (' + COST.freight.toUpperCase() + ')</div><div class="v">' + money(m.freight) + '</div>' +
-            '<div class="k">DUTY — ChAFTA</div><div class="v">$0</div>' +
-            '<div class="k">INSURANCE</div><div class="v">$25</div>' +
-            '<div class="k">PORT / CUSTOMS / CARTAGE</div><div class="v">$90</div>' +
+            (COST.basis === 'quote'
+              ? '<div class="k">DDP SYDNEY (in quote, USD ' + TOSHINE_DDP + ')</div><div class="v">' + money(m.freight) + '</div>' +
+                '<div class="k">DUTY / PORT / CARTAGE</div><div class="v">included in DDP</div>'
+              : '<div class="k">SEA FREIGHT (' + COST.freight.toUpperCase() + ')</div><div class="v">' + money(m.freight) + '</div>' +
+                '<div class="k">DUTY — ChAFTA</div><div class="v">$0</div>' +
+                '<div class="k">INSURANCE</div><div class="v">$25</div>' +
+                '<div class="k">PORT / CUSTOMS / CARTAGE</div><div class="v">$90</div>') +
             '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">LANDED ex-GST</div>' +
             '<div class="v" style="border-top:2px solid var(--ink);padding-top:6px">' + money(m.landed) + '</div>' +
           '</div>' +
@@ -748,9 +835,12 @@
           '</div>' +
         '</div>' +
       '</div>' +
-      finishCard() + methodCard() +
+      benchmarkCard() + finishCard() + methodCard() +
       '<div class="cnote" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">' +
-      'ESTIMATES, NOT QUOTES. Part prices are judgement at a batch-10 reference and scale by the volume factor; ' +
+      (COST.basis === 'quote'
+        ? 'BASELINE IS A REAL QUOTE (Toshine TSPC01L, V41). The adders over it are estimates. '
+        : 'BUILT-UP ESTIMATE — part prices are judgement and ran about 2x the real quote. Kept for comparison only. ') +
+      'Coating cost is computed live from the drawing geometry; ' +
       'coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
       'Replace with real quotes before committing.</div>';
   }
@@ -770,10 +860,14 @@
       html += '</div>';
     });
     html += '<div class="grp"><h2>PRODUCTION RUN</h2>' +
-      '<div class="crow"><label for="c_batch">Batch size</label>' +
-      '<select id="c_batch" data-c="batch"><option value="1">1 (prototype)</option>' +
-      '<option value="10">10</option><option value="50" selected>50</option>' +
-      '<option value="200">200</option><option value="500">500</option></select></div>' +
+      '<div class="crow"><label for="c_batch">Batch size (any number)</label>' +
+      '<input id="c_batch" data-c="batch" type="number" min="1" max="5000" step="1" value="50"></div>' +
+      '<div class="crow"><label for="c_basis">Cost basis</label>' +
+      '<select id="c_basis" data-c="basis">' +
+      '<option value="quote">Toshine quote (real)</option>' +
+      '<option value="est">Built-up estimate</option></select></div>' +
+      '<div class="crow"><label for="c_fx">FX AUD per USD</label>' +
+      '<input id="c_fx" data-c="fx" type="number" min="1" max="2.5" step="0.01" value="1.52"></div>' +
       '<div class="crow"><label for="c_finish">Finish route</label>' +
       '<select id="c_finish" data-c="finish"><option value="powder">A · Powder + galv</option>' +
       '<option value="ceramic">B · Ceramic bonded</option>' +
@@ -808,8 +902,9 @@
       var c = e.target && e.target.getAttribute('data-c');
       var o = e.target && e.target.getAttribute('data-o');
       if (c) {
-        COST[c] = (c === 'batch') ? Number(e.target.value)
+        COST[c] = (c === 'batch') ? Math.max(1, Math.min(5000, Math.round(Number(e.target.value)) || 1))
                 : (c === 'margin') ? Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5))
+                : (c === 'fx') ? Math.max(1, Math.min(2.5, Number(e.target.value) || 1.52))
                 : e.target.value;
         renderCost();
       } else if (o) {
@@ -819,10 +914,10 @@
     });
     rail.addEventListener('input', function (e) {
       var k = e.target && e.target.getAttribute('data-k');
-      if (e.target && e.target.getAttribute('data-c') === 'margin') {
-        COST.margin = Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5));
-        renderCost();
-      }
+      var lc = e.target && e.target.getAttribute('data-c');
+      if (lc === 'margin') { COST.margin = Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5)); renderCost(); }
+      if (lc === 'batch')  { COST.batch  = Math.max(1, Math.min(5000, Math.round(Number(e.target.value)) || 1)); renderCost(); }
+      if (lc === 'fx')     { COST.fx     = Math.max(1, Math.min(2.5, Number(e.target.value) || 1.52)); renderCost(); }
       if (!k) return;
       var v = Number(e.target.value);
       if (isFinite(v) && v >= 1 && v <= 5000) {
