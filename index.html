@@ -144,6 +144,20 @@
   .cwarn { color: var(--warn); font-weight: 600; }
   .cbar { display: flex; height: 10px; margin: 6px 0 2px 0; }
   .cbar span { display: block; }
+  .fgrid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 10px; }
+  .fcard {
+    text-align: left; padding: 0 0 9px 0; border: 1.5px solid var(--line); background: var(--paper);
+    cursor: pointer; font-family: inherit; display: flex; flex-direction: column; gap: 5px;
+  }
+  .fcard:hover { border-color: var(--sage-deep); background: var(--paper); }
+  .fcard.on { border: 2px solid var(--ink); background: var(--surface); }
+  .fcard.on .fc-nm { color: var(--ink); }
+  .fc-sw { display: flex; height: 14px; }
+  .fc-nm { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; padding: 4px 9px 0 9px; color: var(--ink); }
+  .fc-br { font-size: 9.5px; color: var(--muted); line-height: 1.35; padding: 0 9px; min-height: 26px; }
+  .fc-bt { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 2px 9px 0 9px; }
+  .fc-tp { font-size: 9.5px; color: var(--sage-deep); font-weight: 600; }
+  .fc-pr { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
   #threeWrap canvas { display: block; }
   /* svg classes driven by tokens so both themes hold */
   .st  { stroke: var(--ink); fill: none; }
@@ -463,7 +477,8 @@
   /* ---------- FINISH REFERENCE ---------- */
   var FINISH = {
     powder: {
-      name: 'A · HIGH-TEMP POWDER OVER GALV',
+      name: 'A · HIGH-TEMP POWDER OVER GALV', short: 'POWDER + GALV',
+      brand: 'WEBER cart frames · GOZNEY stands & mantels', tshort: '250–550 °C',
       as: 'Tagwood uses plain heat-resistant paint — this is a grade above it',
       temp: '250–550 °C continuous (silicone polyester)',
       life: '20 yr+ · UV resistant · best colour range',
@@ -472,7 +487,8 @@
       sw: [['#7C8468','SAGE'],['#E4DFD2','BONE'],['#26261F','CHARCOAL']]
     },
     ceramic: {
-      name: 'B · CERAMIC BONDED COATING',
+      name: 'B · CERAMIC BONDED COATING', short: 'CERAMIC BONDED',
+      brand: 'GOZNEY DOME outer casing', tshort: 'to ~980 °C',
       as: 'The Gozney Dome route',
       temp: 'up to ~980 °C · resists thermal shock, quench-safe',
       life: '~5 yr · UV stable · water resistant',
@@ -481,7 +497,8 @@
       sw: [['#2B2B27','GRAPHITE'],['#DED8C8','STONE'],['#6E6F66','SLATE']]
     },
     enamel: {
-      name: 'C · PORCELAIN ENAMEL',
+      name: 'C · PORCELAIN ENAMEL', short: 'PORCELAIN ENAMEL',
+      brand: 'WEBER kettle bowls & lids', tshort: '500–600 °C',
       as: 'The Weber kettle route',
       temp: '500–600 °C service · fired at 815 °C',
       life: 'Indefinite if unchipped · non-porous · food safe',
@@ -490,7 +507,8 @@
       sw: [['#1C1C1A','JET'],['#F0EAD8','IVORY'],['#4A5A46','BOTTLE']]
     },
     coastal: {
-      name: 'D · COASTAL — 316 + POWDER',
+      name: 'D · COASTAL — 316 + POWDER', short: 'COASTAL 316',
+      brand: 'TAGWOOD BBQ03SS all-stainless variant', tshort: '250–550 °C',
       as: 'Tagwood sell an all-stainless SS model; this is the smarter half of it',
       temp: 'As route A · 316 on cold-but-exposed parts only',
       life: 'Best corrosion life in salt air',
@@ -579,6 +597,30 @@
 
   function money(n) { return '$' + Math.round(n).toLocaleString(); }
 
+  function finishPicker() {
+    var qty = COST.batch, keep = COST.finish, cards = '';
+    ['powder','ceramic','enamel','coastal'].forEach(function (k) {
+      COST.finish = k;
+      var cost = finishCost(qty) * (COST.xl ? 1.18 : 1);
+      var f = FINISH[k], on = (k === keep);
+      var sw = f.sw.map(function (c) {
+        return '<span style="flex:1;height:14px;background:' + c[0] + '"></span>';
+      }).join('');
+      cards +=
+        '<button class="fcard' + (on ? ' on' : '') + '" data-f="' + k + '" type="button">' +
+          '<div class="fc-sw">' + sw + '</div>' +
+          '<div class="fc-nm">' + f.name.split(' · ')[0] + ' &middot; ' + f.short + '</div>' +
+          '<div class="fc-br">' + f.brand + '</div>' +
+          '<div class="fc-bt"><span class="fc-tp">' + f.tshort + '</span>' +
+          '<span class="fc-pr">' + money(cost) + '</span></div>' +
+        '</button>';
+    });
+    COST.finish = keep;
+    return '<div class="fgrid">' + cards + '</div>' +
+      '<div class="cnote" style="margin:-2px 0 12px 0">Click a finish to price the whole build on it. ' +
+      'Reference: <b>Tagwood BBQ03SI uses plain heat-resistant paint</b> — below all four.</div>';
+  }
+
   function finishCard() {
     var f = FINISH[COST.finish], qty = COST.batch;
     var sw = f.sw.map(function (c) {
@@ -637,6 +679,7 @@
       'BATCH ' + m.qty + ' · ' + COST.finish.toUpperCase() + ' · ' + COST.freight.toUpperCase() + (COST.xl ? ' · XL' : '');
 
     document.getElementById('costOut').innerHTML =
+      finishPicker() +
       '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:26px;">' +
         '<div><div class="cout">' + rows +
           '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">FOB SUBTOTAL</div>' +
@@ -999,6 +1042,15 @@
     });
     loop3();
   }
+
+  document.getElementById('costOut').addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.fcard') : null;
+    if (!btn) return;
+    COST.finish = btn.getAttribute('data-f');
+    var sel = document.getElementById('c_finish');
+    if (sel) sel.value = COST.finish;
+    renderCost();
+  });
 
   buildRail();
   refresh(false);
