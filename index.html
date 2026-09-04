@@ -4,35 +4,36 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Asado Works</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
 <style>
   :root {
-    --paper: #f2efe7; --surface: #eae7db; --ink: #23241e;
-    --sage: #7c8468; --sage-deep: #59614a; --brick: #c9a27a;
-    --muted: #85867a; --line: #d3cfc0; --ok: #4f6b45; --warn: #9a6a1f;
+    /* Asado Works brand palette - 02 Brand Guidelines. No orange, ever. */
+    --paper: #F5F4EF; --surface: #F9F8F5; --ink: #171717;
+    --sage: #56675C; --sage-deep: #26352C; --grey-soft: #E4E4E1;
+    --muted: #727272; --line: #CBCBCB; --ok: #56675C; --warn: #26352C;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #21221c; --surface: #2a2b24; --ink: #e8e6d9;
-      --sage: #6e765c; --sage-deep: #a9b295; --brick: #c9a27a;
-      --muted: #96978a; --line: #3c3d34; --ok: #9dbb8e; --warn: #d9ae5f;
+      --paper: #171717; --surface: #1F1F1F; --ink: #F5F4EF;
+      --sage: #8CA394; --sage-deep: #B3C6B8; --grey-soft: #2A2A2A;
+      --muted: #9A9A9A; --line: #333333; --ok: #8CA394; --warn: #C9B98A;
     }
   }
   :root[data-theme="dark"] {
-    --paper: #21221c; --surface: #2a2b24; --ink: #e8e6d9;
-    --sage: #6e765c; --sage-deep: #a9b295; --brick: #c9a27a;
-    --muted: #96978a; --line: #3c3d34; --ok: #9dbb8e; --warn: #d9ae5f;
+    --paper: #171717; --surface: #1F1F1F; --ink: #F5F4EF;
+    --sage: #8CA394; --sage-deep: #B3C6B8; --grey-soft: #2A2A2A;
+    --muted: #9A9A9A; --line: #333333; --ok: #8CA394; --warn: #C9B98A;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
-    font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.55;
+    font-family: 'Inter', Arial, sans-serif; font-size: 14px; line-height: 1.6;
   }
   .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 64px 20px; }
 
   header { border-bottom: 2px solid var(--ink); padding: 30px 0 18px 0; margin-bottom: 26px; }
   .brand {
-    font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif; font-weight: 700;
+    font-family: 'Inter', Arial, sans-serif; font-weight: 700;
     font-size: 26px; letter-spacing: 0.30em; margin: 0;
   }
   .tagline { color: var(--muted); margin-top: 8px; font-size: 12px; letter-spacing: .05em; }
@@ -42,7 +43,7 @@
   }
 
   h2 {
-    font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif; font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 500; text-transform: uppercase;
     font-size: 11px; letter-spacing: .2em; color: var(--muted);
     margin: 34px 0 12px 0; padding-bottom: 6px; border-bottom: 1px solid var(--line);
   }
@@ -53,11 +54,11 @@
     display: block; text-decoration: none; color: inherit; background: var(--surface);
     border: 2px solid var(--ink); padding: 15px 16px 14px 16px;
   }
-  a.door:hover { background: var(--sage); color: #f2efe7; }
-  a.door:hover .d-sub, a.door:hover .d-tag { color: #e4e2d6; }
-  .d-tag { font-size: 9.5px; letter-spacing: .18em; color: var(--muted); }
+  a.door:hover { background: var(--sage-deep); color: #F9F8F5; }
+  a.door:hover .d-sub, a.door:hover .d-tag { color: #E4E4E1; }
+  .d-tag { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: .18em; color: var(--muted); text-transform: uppercase; }
   .d-nm {
-    font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif; font-weight: 700;
+    font-family: 'Inter', Arial, sans-serif; font-weight: 700;
     font-size: 16px; letter-spacing: .02em; margin: 5px 0 4px 0;
   }
   .d-sub { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
@@ -65,13 +66,14 @@
   /* --- tables --- */
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th {
-    text-align: left; font-weight: 600; font-size: 9.5px; letter-spacing: .14em;
+    font-family: 'IBM Plex Mono', monospace; text-transform: uppercase;
+    text-align: left; font-weight: 500; font-size: 9.5px; letter-spacing: .14em;
     color: var(--muted); padding: 0 14px 6px 0; border-bottom: 1.5px solid var(--ink);
   }
   th:last-child, td:last-child { padding-right: 0; }
-  th.r, td.r { text-align: right; }
+  th.r, td.r { text-align: right; font-family: 'IBM Plex Mono', monospace; }
   td { padding: 7px 14px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  tr.hi td { font-weight: 600; background: rgba(124,132,104,.14); }
+  tr.hi td { font-weight: 600; background: rgba(86,103,92,.13); }
   /* narrow screens: let a wide table scroll inside its own box rather than crushing columns */
   .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .tw--med  table { min-width: 460px; }
@@ -110,7 +112,7 @@
 
   <header>
     <h1 class="brand">ASADO&#8202;WORKS</h1>
-    <div class="tagline">Premium Argentine parrilla &middot; Santa Maria crank grill &middot; Project home</div>
+    <div class="tagline">Fire, built your way. &nbsp;&middot;&nbsp; Modular live-fire system &nbsp;&middot;&nbsp; Project home</div>
     <div class="stamp">REV G &middot; PROPOSED &mdash; NOT RELEASED FOR TOOLING</div>
   </header>
 
@@ -141,25 +143,54 @@
     </a>
   </div>
 
-  <h2>WHERE THE MONEY LANDS</h2>
+  <h2>THE PRICE IS ALREADY SET</h2>
+  <p style="margin-top:0">
+    The funnel is live and advertising <b>$3,995 standard</b> and <b>$6,244 XL</b>, plus $100
+    shipping. So retail is an input, not something to derive from a margin multiple. The only
+    question left is what it costs to land, and therefore what margin survives.
+  </p>
   <div class="tw tw--wide">
   <table>
     <thead><tr>
-      <th>Batch</th><th class="r">Landed ex-GST</th><th class="r">RRP @ 2.5&times;</th>
-      <th class="r">Cash out</th><th>vs Tagwood $4.5&ndash;5.5k</th>
+      <th>Cost basis</th><th class="r">Landed ex-GST</th><th class="r">GM at $3,995</th>
+      <th class="r">Multiple</th><th>Read</th>
     </tr></thead>
     <tbody>
-      <tr><td>1</td><td class="r">$2,310</td><td class="r">$6,360</td><td class="r">$2.3k</td><td class="warn">Over the band</td></tr>
-      <tr><td>10</td><td class="r">$1,950</td><td class="r">$5,350</td><td class="r">$19k</td><td class="warn">Top edge</td></tr>
-      <tr class="hi"><td>50</td><td class="r">$1,830</td><td class="r">$5,035</td><td class="r">$92k</td><td class="ok">Inside &mdash; recommended</td></tr>
-      <tr><td>250</td><td class="r">$1,770</td><td class="r">$4,870</td><td class="r">$442k</td><td class="ok">Comfortable</td></tr>
+      <tr class="hi">
+        <td><b>Toshine custom</b><br><span class="mut">their USD 420 FOB, 4 Sep</span></td>
+        <td class="r">$1,320</td><td class="r">64%</td><td class="r">2.75&times;</td>
+        <td class="ok">Works &mdash; if it holds against the real drawings</td></tr>
+      <tr>
+        <td>Catalogue + our adders<br><span class="mut">batch 50</span></td>
+        <td class="r">$1,831</td><td class="r">50%</td><td class="r">1.98&times;</td>
+        <td class="warn">Thin for a first run</td></tr>
+      <tr>
+        <td>Catalogue + our adders<br><span class="mut">batch 10</span></td>
+        <td class="r">$1,947</td><td class="r">46%</td><td class="r">1.87&times;</td>
+        <td class="warn">Too thin</td></tr>
+      <tr>
+        <td>Built-up estimate<br><span class="mut">superseded</span></td>
+        <td class="r">$2,419</td><td class="r">33%</td><td class="r">1.50&times;</td>
+        <td class="warn">My old model &mdash; ran ~2&times; high</td></tr>
     </tbody>
   </table>
   </div>
   <p class="mut" style="font-size:11.5px">
-    Baseline is a real quote &mdash; Toshine TSPC01L, offer V41. Everything our spec adds on top
-    is an estimate. FX planned at 1.45 AUD/USD (spot 1.396, 3 Sep 26). ChAFTA duty free with a
-    valid certificate of origin. All of it is adjustable in the builder.
+    The spread between the top row and the second is the whole commercial question. Toshine's
+    USD 420 was quoted against a <b>concept image</b>, not this drawing pack &mdash; they replied
+    &ldquo;very similar to ours&rdquo;, which reads as their existing shell in green rather than
+    our 3.2&nbsp;mm modular-deck build. Everything else assumes FX 1.45 (spot 1.396, 3 Sep 26),
+    ChAFTA duty free with a valid certificate of origin, and a 15% contingency. All adjustable
+    in the builder.
+  </p>
+
+  <h2>WHAT THE LEADS ARE ASKING FOR</h2>
+  <p style="margin-top:0" class="mut">
+    Feature requests attached to inbound leads, 4 Sep: <b style="color:var(--ink)">santa maria
+    grill</b>, <b style="color:var(--ink)">flat top / plancha</b>, <b style="color:var(--ink)">auto
+    rotating spit</b>, <b style="color:var(--ink)">main rotisserie spit</b>,
+    <b style="color:var(--ink)">churrasco skewer attachment</b>, <b style="color:var(--ink)">V-shape
+    grill</b>. Rotation is being asked for repeatedly and is not currently in the Rev G pack.
   </p>
 
   <h2>OPEN DECISIONS</h2>
@@ -168,10 +199,22 @@
     <thead><tr><th>Call</th><th>Options</th><th>Costs</th></tr></thead>
     <tbody>
       <tr>
+        <td><b>Sample first</b></td>
+        <td>Take their sample offer, or go straight to a batch</td>
+        <td>Toshine want to build and photograph a sample before bulk. That is the right
+            process and it de-risks the $420. It is also not costed anywhere yet.</td>
+      </tr>
+      <tr>
         <td><b>First run size</b></td>
         <td>10 units vs 50</td>
-        <td>10 prices us at the top of the benchmark. 50 gets us inside it but is
-            <b>$92k out the door</b> before a sale.</td>
+        <td>At the custom price the margin holds at either. At the adders price, 10 is too
+            thin. 50 is <b>~$66k out the door</b> before a sale on the custom basis.</td>
+      </tr>
+      <tr>
+        <td><b>Rotation</b></td>
+        <td>In the launch spec, or an accessory</td>
+        <td>Leads keep asking for spits and auto-rotation. Not in Rev G. Brand guidelines
+            already name main spit and churrasco skewers as working modules.</td>
       </tr>
       <tr>
         <td><b>Construction</b></td>
@@ -194,17 +237,55 @@
   </table>
   </div>
 
+  <h2>BRAND &mdash; WHAT THE GUIDELINES SAY</h2>
+  <div class="tw tw--med">
+  <table>
+    <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Tagline</td><td>Fire, built your way.</td></tr>
+      <tr><td>Primary CTA</td><td>Build yours.</td></tr>
+      <tr><td>Type</td><td>Inter for headlines and body. IBM Plex Mono for labels, numbers,
+        prices and technical notes.</td></tr>
+      <tr><td>Green</td><td>Eucalyptus <b>#56675C</b> accent &middot; Deep Forest <b>#26352C</b>
+        feature panels</td></tr>
+      <tr><td>Neutrals</td><td>Charcoal Ink #171717 &middot; Paper #F5F4EF &middot; Warm Cream
+        #F9F8F5 &middot; Soft Grey #E4E4E1 &middot; Line Grey #CBCBCB &middot; Muted #727272</td></tr>
+      <tr><td class="warn">Never</td><td class="warn">No orange. No &ldquo;ultimate&rdquo; or
+        &ldquo;game changer&rdquo;. No Australian Made claim. No Argentine term without an
+        explanation on first use.</td></tr>
+      <tr><td>Module names</td><td>Core grill / adjustable parrilla &middot; main spit &middot;
+        churrasco skewers &middot; plancha &middot; double-wide cooking zone &middot; cast-iron
+        fire pans</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="mut" style="font-size:11.5px">
+    This page and the builder now run on that palette and type system. <b>The nine drawing
+    sheets do not yet</b> &mdash; they still use the old sage and a tan hearth colour, which is
+    the one thing the guidelines rule out.
+  </p>
+
   <h2>NEXT ACTIONS</h2>
   <ol class="acts">
+    <li><b>Pin Toshine down on what the USD 420 actually covers.</b> Send the RFQ pack, not the
+      concept image, and ask them to re-quote against it. The gap between $420 and our
+      adders model is the difference between 64% and 50% margin.<span class="who">ADRIAN</span></li>
+    <li><b>Price the sample.</b> They offered one before bulk. Get the sample unit cost, its
+      freight and the approval turnaround in writing.<span class="who">ADRIAN</span></li>
     <li><b>Send the RFQ pack to two more suppliers.</b> One quote is not a market, and every
       adder over Toshine's baseline is currently a guess.<span class="who">ADRIAN</span></li>
+    <li><b>Decide whether rotation is in the launch spec.</b> Leads keep asking for spits and
+      auto-rotation and Rev G has neither.<span class="who">ADRIAN + ELLIOT</span></li>
+    <li><b>Reconcile the ad account before scaling.</b> Seven leads for $11 is not a $0.50 cost
+      per lead. Carried over from the 30 Aug call and still open.<span class="who">ADRIAN</span></li>
     <li><b>Get "DDP Sydney" confirmed in writing.</b> A Chinese supplier has no ABN and cannot
       remit our GST. Nine times in ten "DDP" is really DAP and the GST, the $201 processing
       charge and the last leg land on us.<span class="who">ADRIAN</span></li>
     <li><b>Put the ChAFTA certificate of origin in the purchase order.</b> No certificate means
       5% duty on the customs value.<span class="who">ADRIAN</span></li>
-    <li><b>Decide the first run size.</b> Everything else &mdash; pricing, freight mode, cash
-      &mdash; hangs off this one number.<span class="who">ADRIAN + ELLIOT</span></li>
+    <li><b>Decide the first run size.</b> Freight mode and cash hang off this one number.<span class="who">ADRIAN + ELLIOT</span></li>
+    <li><b>Rebrand the nine drawing sheets</b> to the guideline palette and type. They currently
+      use a tan hearth colour, and the guidelines rule out orange.<span class="who">CLAUDE</span></li>
     <li><b>Redraw GA-01 and EX-02 to the Rev G monocoque.</b> The section sheet shows it;
       the elevations and the exploded view still show the old welded box.<span class="who">CLAUDE</span></li>
     <li><b>Run the five prototype tests</b> before Rev G is locked: pan wall temperature at the
@@ -219,6 +300,9 @@
     <tbody>
       <tr><td>GA-01 elevations still show the welded box, not the Rev G monocoque</td><td class="warn">Open</td></tr>
       <tr><td>EX-02 exploded view predates the Rev F architecture rebuild</td><td class="warn">Open</td></tr>
+      <tr><td>Drawing sheets are off-brand &mdash; old sage, tan hearth, wrong headline font</td><td class="warn">Open</td></tr>
+      <tr><td>Rotation / spit modules absent from Rev G despite repeated lead demand</td><td class="warn">Open</td></tr>
+      <tr><td>Toshine's USD 420 quoted against a concept image, not this pack</td><td class="warn">Unverified</td></tr>
       <tr><td>Tooling, first-article sample and pre-shipment inspection</td><td class="warn">Not priced</td></tr>
       <tr><td>Product liability cover, warranty and spares provision</td><td class="warn">Not priced</td></tr>
       <tr><td>Australian storage and last-mile delivery</td><td class="warn">Not priced</td></tr>

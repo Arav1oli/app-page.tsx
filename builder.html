@@ -560,6 +560,16 @@
   var TOSHINE_DDP = 300;   /* USD/unit, sea freight DDP Sydney */
   var TOSHINE_SPEC = '1620x710x1610 · 127 kg · 1.5-2.0 mm · AISI 304 / carbon · 25 working days';
 
+  /* Toshine's reply of 4 Sep 2026 to our green concept image: USD 420 FOB "for bulk
+     orders", customisation included, sample first. Quoted against a CONCEPT IMAGE, not
+     against this drawing pack - they said "very similar to ours", which reads as their
+     existing shell in green, not our 3.2 mm modular-deck build. Treat as indicative. */
+  var TOSHINE_CUSTOM = 420;
+
+  /* Prices the funnel is ALREADY advertising (Asado Works funnel emails, 4 Sep 2026).
+     These are live market-facing numbers, so RRP is an input now, not an output. */
+  var LIVE_PRICE = { standard: 3995, xl: 6244, ship: 100 };
+
   function interp(tbl, q) {
     if (q <= tbl[0][0]) return tbl[0][1];
     if (q >= tbl[tbl.length-1][0]) return tbl[tbl.length-1][1];
@@ -653,6 +663,16 @@
       fob = lines.reduce(function (t, l) { return t + l[1]; }, 0);
       freight = TOSHINE_DDP * COST.fx;
     }
+    if (COST.basis === 'custom') {
+      /* their own number for the customised green build, all in, one line */
+      /* their number is for the standard body; XL is not in it, so scale it like the rest */
+      var cb = TOSHINE_CUSTOM * COST.fx * xl;
+      lines = [['TOSHINE CUSTOM GREEN BUILD (their quote, USD ' + TOSHINE_CUSTOM + ' FOB)' +
+                (COST.xl ? ' × 1.18 XL' : ''), cb]];
+      groups = { body: cb };
+      fob = cb;
+      freight = TOSHINE_DDP * COST.fx * xl;
+    }
     /* --- import charges, AU rules. Duty is on the customs value (FOB). GST is on the
        Value of Taxable Importation = customs value + international transport/insurance
        + duty. IPC is per consignment, so it amortises over the batch. --- */
@@ -668,6 +688,12 @@
     var cashOut = landed + (COST.gstReg ? 0 : gst);
     var rrp = landed * COST.margin * 1.10;
     var gm = (1 - 1/COST.margin) * 100;
+
+    /* The funnel is already quoting a price. Measure against that, not against a multiple. */
+    var live = COST.xl ? LIVE_PRICE.xl : LIVE_PRICE.standard;
+    var liveExGst = live / 1.10;
+    var liveGm = (1 - landed / liveExGst) * 100;   /* gross margin at the advertised price */
+    var liveMult = liveExGst / landed;
     var kg = 110 * (COST.xl ? 1.15 : 1);
     if (COST.build === 'wrap') kg -= 25;
     if (COST.build === 'mono') kg -= 5;
@@ -676,6 +702,7 @@
     return { qty: qty, lines: lines, groups: groups, fob: fob, freight: freight,
              landed: landed, rrp: rrp, gm: gm, vm: vm, kg: kg,
              duty: duty, gst: gst, ipc: ipc, cont: cont, voti: voti, cashOut: cashOut,
+             live: live, liveExGst: liveExGst, liveGm: liveGm, liveMult: liveMult,
              quoteBase: quoteBase, quoteLanded: (interp(TOSHINE, qty) + TOSHINE_DDP) * COST.fx,
              adders: adders };
   }
@@ -723,6 +750,18 @@
       row('ok', '<b>Unit price.</b> Toshine TSPC01L, offer V41: USD 600 / 490 / 460 / 430 / 395 at ' +
         '1 / 10 / 25 / 50 / 100 units, ex works, plus USD 300 DDP Sydney. In-between batches are ' +
         'log-interpolated across those five points.') +
+      row('ok', '<b>Custom quote.</b> Toshine, 4 Sep 2026, against our green concept image: ' +
+        'USD ' + TOSHINE_CUSTOM + ' FOB for bulk, customisation included, sample first.') +
+      row('ok', '<b>Retail price.</b> The funnel is already advertising ' +
+        money(LIVE_PRICE.standard) + ' standard and ' + money(LIVE_PRICE.xl) + ' XL, ' +
+        'plus $' + LIVE_PRICE.ship + ' shipping. Price is set; margin is the output.') +
+      row('warn', '<b>The custom quote is not against these drawings.</b> They replied ' +
+        '&ldquo;very similar to ours&rdquo; to a concept image &mdash; that reads as their existing ' +
+        'shell in green, not our 3.2&nbsp;mm modular-deck build. Expect it to move once they ' +
+        'price the actual pack. &ldquo;Bulk&rdquo; is also undefined.') +
+      row('assumed', '<b>Sample order not costed.</b> They want to build and photograph a sample ' +
+        'before bulk. Right process, but the sample unit, its freight and the approval round ' +
+        'are nowhere in this model.') +
       row('ok', '<b>FX.</b> AUD/USD spot 0.7161 on 3 Sep 2026 = ' + FX_SPOT.toFixed(3) +
         ' AUD per USD. Planning rate ' + FX_PLAN.toFixed(2) + '.') +
       row('ok', '<b>Duty.</b> 0% under ChAFTA with a valid Certificate of Origin from an authorised ' +
@@ -864,7 +903,9 @@
     var deckShare = ((m.groups.deck || 0) / m.fob * 100).toFixed(0);
 
     document.getElementById('costBasis').textContent =
-      'BATCH ' + m.qty + ' · ' + (COST.basis === 'quote' ? 'TOSHINE QUOTE BASIS · FX ' + COST.fx.toFixed(2) : 'BUILT-UP ESTIMATE') +
+      'BATCH ' + m.qty + ' · ' + (COST.basis === 'quote' ? 'TOSHINE + ADDERS · FX ' + COST.fx.toFixed(2)
+        : COST.basis === 'custom' ? 'TOSHINE CUSTOM USD 420 · FX ' + COST.fx.toFixed(2)
+        : 'BUILT-UP ESTIMATE') +
       ' · ' + COST.finish.toUpperCase() + (COST.xl ? ' · XL' : '');
 
     document.getElementById('costOut').innerHTML =
@@ -902,9 +943,17 @@
             money(m.cashOut * m.qty) + '</b> out before the first sale' +
             (COST.gstReg ? ', with ' + money(m.gst * m.qty) + ' GST back on the next BAS.' : '.') + '</div>' +
           '<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--ink)">' +
-            '<div class="k" style="font-size:11px;letter-spacing:.14em;color:var(--muted)">RRP inc GST @ ' + COST.margin.toFixed(1) + '×</div>' +
-            '<div class="cbig">' + money(m.rrp) + '</div>' +
-            '<div class="cnote">Gross margin ' + m.gm.toFixed(0) + '% · <span class="' + posCls + '">' + pos + '</span></div>' +
+            '<div class="k" style="font-size:11px;letter-spacing:.14em;color:var(--muted)">' +
+              'FUNNEL IS ALREADY ADVERTISING &mdash; ' + (COST.xl ? 'XL' : 'STANDARD') + '</div>' +
+            '<div class="cbig">' + money(m.live) + '</div>' +
+            '<div class="cnote">At that price: gross margin <b style="color:' +
+              (m.liveGm >= 55 ? 'var(--ok)' : m.liveGm >= 45 ? 'var(--warn)' : 'var(--warn)') + '">' +
+              m.liveGm.toFixed(0) + '%</b> &middot; ' + m.liveMult.toFixed(2) + '&times; on landed cost.</div>' +
+            '<div class="cnote" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">' +
+              'Your own ' + COST.margin.toFixed(1) + '&times; target would need ' + money(m.rrp) +
+              ' &mdash; <b style="color:' + (m.rrp > m.live ? 'var(--warn)' : 'var(--ok)') + '">' +
+              (m.rrp > m.live ? money(m.rrp - m.live) + ' above what is advertised' :
+               money(m.live - m.rrp) + ' of headroom') + '</b>.</div>' +
             '<div class="cnote" style="margin-top:8px">Tagwood BBQ03SI benchmark: $4,500–5,500 · volume factor ' + m.vm.toFixed(2) + '×</div>' +
             '<div class="cnote" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">' +
               'SHIPPING WEIGHT <b style="color:var(--ink)">' + Math.round(m.kg) + ' kg</b>' +
@@ -917,6 +966,8 @@
       '<div class="cnote" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">' +
       (COST.basis === 'quote'
         ? 'BASELINE IS A REAL QUOTE (Toshine TSPC01L, V41). The adders over it are estimates. '
+        : COST.basis === 'custom'
+        ? 'THEIR OWN CUSTOM NUMBER (USD 420 FOB, 4 Sep) — but quoted against a concept image, not this pack. '
         : 'BUILT-UP ESTIMATE — part prices are judgement and ran about 2x the real quote. Kept for comparison only. ') +
       'Coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
       'Replace with real quotes before committing.</div>' +
@@ -942,7 +993,8 @@
       '<input id="c_batch" data-c="batch" type="number" min="1" max="5000" step="1" value="50"></div>' +
       '<div class="crow"><label for="c_basis">Cost basis</label>' +
       '<select id="c_basis" data-c="basis">' +
-      '<option value="quote">Toshine quote (real)</option>' +
+      '<option value="quote">Toshine catalogue + our adders</option>' +
+      '<option value="custom">Toshine custom green (USD 420)</option>' +
       '<option value="est">Built-up estimate</option></select></div>' +
       '<div class="crow"><label for="c_fx">FX AUD per USD</label>' +
       '<input id="c_fx" data-c="fx" type="number" min="1" max="2.5" step="0.01" value="' + FX_PLAN + '"></div>' +
