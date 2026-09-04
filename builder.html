@@ -1,0 +1,1330 @@
+<title>Parrilla Plan Builder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>
+  :root {
+    --paper: #f2efe7;
+    --surface: #eae7db;
+    --ink: #23241e;
+    --sage: #7c8468;
+    --sage-deep: #59614a;
+    --brick: #c9a27a;
+    --muted: #85867a;
+    --line: #d3cfc0;
+    --ok: #4f6b45;
+    --warn: #9a6a1f;
+    --pill-ok-bg: #dfe4d3;
+    --pill-warn-bg: #efe2c6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #21221c;
+      --surface: #2a2b24;
+      --ink: #e8e6d9;
+      --sage: #6e765c;
+      --sage-deep: #a9b295;
+      --brick: #c9a27a;
+      --muted: #96978a;
+      --line: #3c3d34;
+      --ok: #9dbb8e;
+      --warn: #d9ae5f;
+      --pill-ok-bg: #313828;
+      --pill-warn-bg: #3d3a22;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #21221c;
+    --surface: #2a2b24;
+    --ink: #e8e6d9;
+    --sage: #6e765c;
+    --sage-deep: #a9b295;
+    --brick: #c9a27a;
+    --muted: #96978a;
+    --line: #3c3d34;
+    --ok: #9dbb8e;
+    --warn: #d9ae5f;
+    --pill-ok-bg: #313828;
+    --pill-warn-bg: #3d3a22;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 13px;
+  }
+  * { box-sizing: border-box; }
+  .top {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 18px 24px; border-bottom: 2px solid var(--ink);
+  }
+  .brand {
+    font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700; font-size: 15px; letter-spacing: 0.28em;
+  }
+  .title-sub { font-size: 12px; color: var(--muted); letter-spacing: 0.08em; }
+  .pill {
+    padding: 6px 12px; font-weight: 600; font-size: 12px; letter-spacing: 0.05em;
+    border: 1.5px solid var(--ok); color: var(--ok); background: var(--pill-ok-bg);
+  }
+  .pill.warn { border-color: var(--warn); color: var(--warn); background: var(--pill-warn-bg); }
+  .actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--ink); background: var(--surface); border: 1.5px solid var(--ink);
+    padding: 8px 14px; cursor: pointer;
+  }
+  button:hover { background: var(--sage); color: var(--paper); }
+  button:focus-visible { outline: 2px solid var(--sage-deep); outline-offset: 2px; }
+  button.primary { background: var(--ink); color: var(--paper); }
+  button.primary:hover { background: var(--sage-deep); }
+  .wrap { display: grid; grid-template-columns: 330px minmax(0, 1fr); min-height: calc(100vh - 70px); }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  .rail {
+    border-right: 2px solid var(--ink); padding: 18px 20px 40px 20px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  @media (max-width: 900px) { .rail { border-right: none; border-bottom: 2px solid var(--ink); } }
+  .grp { display: flex; flex-direction: column; gap: 8px; }
+  .grp h2 {
+    margin: 0; font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: var(--sage-deep);
+    border-bottom: 1px solid var(--line); padding-bottom: 6px;
+  }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .row label { flex: 1; font-size: 12px; }
+  .row .in { display: flex; align-items: center; gap: 6px; }
+  .row input {
+    width: 76px; font-family: inherit; font-size: 13px; font-weight: 500; text-align: right;
+    color: var(--ink); background: var(--paper); border: 1.5px solid var(--line);
+    padding: 6px 8px; font-variant-numeric: tabular-nums;
+  }
+  .row input:focus-visible { outline: none; border-color: var(--sage-deep); }
+  .row .unit { font-size: 11px; color: var(--muted); width: 22px; }
+  .derived {
+    border: 1.5px solid var(--line); background: var(--surface);
+    padding: 10px 12px; font-size: 12px; line-height: 1.6;
+  }
+  .derived b { font-weight: 600; }
+  .warnings { display: flex; flex-direction: column; gap: 6px; }
+  .warnings div {
+    font-size: 11.5px; color: var(--warn); border-left: 3px solid var(--warn); padding: 2px 0 2px 8px;
+  }
+  .stage { padding: 18px 24px 30px 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .sheet {
+    border: 2px solid var(--ink); background: var(--paper);
+    padding: 14px; overflow-x: auto;
+  }
+  .sheet-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    border-bottom: 2px solid var(--ink); padding-bottom: 8px; margin-bottom: 10px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+  }
+  .sheet svg { width: 100%; height: auto; display: block; }
+  .chain {
+    border: 2px solid var(--ink); padding: 10px 14px;
+    font-size: 12px; font-weight: 500; line-height: 1.6; letter-spacing: 0.02em;
+  }
+  .tog {
+    display: flex; align-items: center; gap: 8px; font-size: 11px;
+    color: var(--muted); letter-spacing: 0.08em; cursor: pointer; user-select: none;
+  }
+  .tog input { accent-color: var(--sage-deep); width: 15px; height: 15px; cursor: pointer; }
+  #threeWrap { height: 500px; position: relative; }
+  .crow { display: flex; align-items: center; gap: 10px; }
+  .crow label { flex: 1; font-size: 12px; }
+  .crow select, .crow input[type=number] {
+    width: 108px; font-family: inherit; font-size: 12px; font-weight: 500;
+    color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); padding: 5px 6px;
+  }
+  .crow input[type=checkbox] { accent-color: var(--sage-deep); width: 15px; height: 15px; cursor: pointer; }
+  .cout { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; font-size: 12.5px; }
+  .cout .k { color: var(--muted); }
+  .cout .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .cbig { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cnote { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .cwarn { color: var(--warn); font-weight: 600; }
+  .cbar { display: flex; height: 10px; margin: 6px 0 2px 0; }
+  .cbar span { display: block; }
+  .fgrid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 10px; }
+  .fcard {
+    text-align: left; padding: 0 0 9px 0; border: 1.5px solid var(--line); background: var(--paper);
+    cursor: pointer; font-family: inherit; display: flex; flex-direction: column; gap: 5px;
+  }
+  .fcard:hover { border-color: var(--sage-deep); background: var(--paper); }
+  .fcard.on { border: 2px solid var(--ink); background: var(--surface); }
+  .fcard.on .fc-nm { color: var(--ink); }
+  .fc-sw { display: flex; height: 14px; }
+  .fc-nm { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; padding: 4px 9px 0 9px; color: var(--ink); }
+  .fc-br { font-size: 9.5px; color: var(--muted); line-height: 1.35; padding: 0 9px; min-height: 26px; }
+  .fc-bt { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 2px 9px 0 9px; }
+  .fc-tp { font-size: 9.5px; color: var(--sage-deep); font-weight: 600; }
+  .fc-pr { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #threeWrap canvas { display: block; }
+  /* svg classes driven by tokens so both themes hold */
+  .st  { stroke: var(--ink); fill: none; }
+  .fi  { fill: var(--ink); }
+  .fsage { fill: var(--sage); stroke: var(--ink); }
+  .fbrick { fill: var(--brick); }
+  .fpaper { fill: var(--paper); stroke: var(--ink); }
+  .txt { fill: var(--ink); font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  .txtm { fill: var(--muted); font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  .dim { stroke: var(--ink); }
+</style>
+
+<div class="top">
+  <div>
+    <div class="brand"><a href="./index.html" style="color:inherit;text-decoration:none"
+      title="Back to the project home">&#8592;&nbsp;ASADO&#8202;WORKS</a></div>
+    <div class="title-sub">PARRILLA PLAN BUILDER &#183; mm</div>
+  </div>
+  <div class="pill" id="pill">STACK OK</div>
+  <div class="actions">
+    <button id="btnReset">Reset to Rev E</button>
+    <button id="btnJson" hidden>Download JSON</button>
+    <button id="btnSvg" hidden>Download SVG</button>
+    <button class="primary" id="btnCopy">Copy spec</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="rail" id="rail"></div>
+  <div class="stage">
+    <div class="sheet">
+      <div class="sheet-head">
+        <span>GA &#8212; LIVE ELEVATIONS + PLAN &#183; DRAG TO PAN &#183; SCROLL TO ZOOM</span>
+        <span style="display: flex; gap: 12px; align-items: center;">
+          <span id="scaleNote" class="title-sub"></span>
+          <button id="btnView" style="padding: 4px 10px; font-size: 11px;">Reset view</button>
+        </span>
+      </div>
+      <div id="dwg"></div>
+    </div>
+    <div class="sheet">
+      <div class="sheet-head">
+        <span>3D &#8212; DRAG TO SPIN &#183; SCROLL TO ZOOM</span>
+        <label class="tog"><input type="checkbox" id="popBrasero"> POP OUT BRASERO</label>
+      </div>
+      <div id="threeWrap">
+        <div id="threeMsg" class="title-sub" style="padding: 20px;" hidden>3D view could not load here.</div>
+      </div>
+    </div>
+    <div class="sheet">
+      <div class="sheet-head">
+        <span>COSTING &#8212; LIVE PRODUCTION MODEL &#183; AUD</span>
+        <span class="title-sub" id="costBasis"></span>
+      </div>
+      <div id="costOut"></div>
+    </div>
+    <div class="chain" id="chain"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var DEFAULTS = {
+    overallW: 1450, overallD: 508, overallH: 1613, casterDia: 150,
+    casterH: 200, hearthPan: 820, fireFloor: 870, fireRim: 1200,
+    railH: 1490, travelMin: 950, travelMax: 1200,
+    deckW: 851, deckD: 419, centreRail: 13,
+    braseroW: 250, braseroD: 420, braseroH: 500,
+    secW: 260, secD: 432,
+    benchW: 450, benchD: 350
+  };
+
+  var FIELDS = [
+    { grp: 'ENVELOPE', items: [
+      ['overallW', 'Overall width'], ['overallD', 'Overall depth'],
+      ['overallH', 'Overall height'], ['casterDia', 'Caster dia']
+    ]},
+    { grp: 'VERTICAL DATUMS (ABOVE FLOOR)', items: [
+      ['casterH', 'Cart base'], ['hearthPan', 'Hearth pan'],
+      ['fireFloor', 'Firebox floor'], ['fireRim', 'Firebox rim'],
+      ['railH', 'Hanging rail'], ['travelMin', 'Grate travel min'],
+      ['travelMax', 'Grate travel max']
+    ]},
+    { grp: 'MODULAR DECK', items: [
+      ['deckW', 'Deck width'], ['deckD', 'Deck depth'], ['centreRail', 'Centre rail']
+    ]},
+    { grp: 'BRASERO + SECONDARY', items: [
+      ['braseroW', 'Brasero width'], ['braseroD', 'Brasero depth'],
+      ['braseroH', 'Brasero height'], ['secW', 'Sec grate width'], ['secD', 'Sec grate depth']
+    ]},
+    { grp: 'SIDE BENCH (RH, REMOVABLE)', items: [
+      ['benchW', 'Bench width'], ['benchD', 'Bench depth']
+    ]}
+  ];
+
+  var LS_KEY = 'aw-parrilla-plan-v1';
+  var state = load();
+  var downloadsNs = null;
+  var view = { x: 0, y: 0, k: 1 };
+  var lastVB = { w: 1000, h: 800 };
+
+  function load() {
+    var s = {};
+    Object.keys(DEFAULTS).forEach(function (k) { s[k] = DEFAULTS[k]; });
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        var saved = JSON.parse(raw);
+        Object.keys(DEFAULTS).forEach(function (k) {
+          var v = Number(saved[k]);
+          if (isFinite(v) && v >= 1 && v <= 5000) s[k] = Math.round(v);
+        });
+      }
+    } catch (e) {}
+    return s;
+  }
+  function save() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function bayW() { return Math.max(0, (state.deckW - state.centreRail) / 2); }
+
+  function checks() {
+    var s = state, out = [];
+    if (!(s.casterH < s.hearthPan)) out.push('Cart base must sit below hearth pan');
+    if (!(s.hearthPan < s.fireFloor)) out.push('Hearth pan must sit below firebox floor');
+    if (!(s.fireFloor < s.fireRim)) out.push('Firebox floor must sit below rim');
+    if (!(s.fireRim <= s.railH)) out.push('Rail must sit at or above firebox rim');
+    if (!(s.railH < s.overallH)) out.push('Rail must sit below overall height');
+    if (!(s.travelMin > s.fireFloor)) out.push('Grate travel min must clear firebox floor');
+    if (!(s.travelMax <= s.fireRim)) out.push('Grate travel max above firebox rim');
+    if (!(s.travelMin < s.travelMax)) out.push('Grate travel min must be below max');
+    if (80 + s.braseroW + 140 + s.deckW + 60 > s.overallW)
+      out.push('Brasero + deck + clearances exceed overall width');
+    if (s.deckD > s.overallD - 60) out.push('Deck depth leaves under 60 wall clearance');
+    if (s.benchD > s.overallD) out.push('Bench deeper than the body');
+    if (s.secW < s.braseroW) out.push('Secondary grate narrower than brasero below it');
+    if (s.fireFloor + s.braseroH > s.overallH) out.push('Brasero top exceeds overall height');
+    if (s.casterDia >= s.casterH) out.push('Caster dia must be under cart base height');
+    return out;
+  }
+
+  function chainText() {
+    var s = state;
+    return 'DATUMS AFL (mm): 0 GND · ' + s.casterH + ' CART BASE · ' + s.hearthPan +
+      ' HEARTH PAN · ' + s.fireFloor + ' FIREBOX FLOOR · ' + s.travelMin + '–' +
+      s.travelMax + ' GRATE TRAVEL (' + (s.travelMax - s.travelMin) + ') · ' + s.fireRim +
+      ' FIREBOX RIM · ' + s.railH + ' HANG RAIL · ' + s.overallH + ' O/A — STACK: ' +
+      s.casterH + '+' + (s.hearthPan - s.casterH) + '+' + (s.fireFloor - s.hearthPan) + '+' +
+      (s.fireRim - s.fireFloor) + '+' + (s.overallH - s.fireRim) + ' = ' + s.overallH +
+      ' · BAY ' + Math.round(bayW()) + '×' + s.deckD + ' ×2';
+  }
+
+  function specText() {
+    var s = state;
+    return [
+      'ASADO WORKS — PARRILLA PLAN (mm)',
+      'ENVELOPE ' + s.overallW + ' W × ' + s.overallD + ' D × ' + s.overallH + ' H',
+      chainText(),
+      'DECK ' + s.deckW + '×' + s.deckD + ' · 2 BAYS ' + Math.round(bayW()) + '×' +
+        s.deckD + ' · CENTRE RAIL ' + s.centreRail,
+      'BRASERO ' + s.braseroW + '×' + s.braseroD + '×' + s.braseroH +
+        ' · SEC GRATE ' + s.secW + '×' + s.secD,
+      'SIDE BENCH ' + s.benchW + '×' + s.benchD + ' RH, REMOVABLE (+' + s.benchW + ' W FITTED)',
+      'CASTERS ×4 Ø' + s.casterDia + ' (2 LOCKING)'
+    ].join('\n');
+  }
+
+  /* ---------- drawing (all coordinates in mm) ---------- */
+  function el(tag, attrs, text) {
+    var a = '';
+    for (var k in attrs) a += ' ' + k + '="' + attrs[k] + '"';
+    return text === undefined
+      ? '<' + tag + a + '></' + tag + '>'
+      : '<' + tag + a + '>' + text + '</' + tag + '>';
+  }
+  function dimTickH(x, y1, y2) {
+    return el('line', { 'class': 'dim', x1: x, y1: y1, x2: x, y2: y2, 'stroke-width': 3 }) +
+      el('line', { 'class': 'dim', x1: x - 18, y1: y1 + 18, x2: x + 18, y2: y1 - 18, 'stroke-width': 5 }) +
+      el('line', { 'class': 'dim', x1: x - 18, y1: y2 + 18, x2: x + 18, y2: y2 - 18, 'stroke-width': 5 });
+  }
+  function dimTickW(y, x1, x2) {
+    return el('line', { 'class': 'dim', x1: x1, y1: y, x2: x2, y2: y, 'stroke-width': 3 }) +
+      el('line', { 'class': 'dim', x1: x1 - 18, y1: y + 18, x2: x1 + 18, y2: y - 18, 'stroke-width': 5 }) +
+      el('line', { 'class': 'dim', x1: x2 - 18, y1: y + 18, x2: x2 + 18, y2: y - 18, 'stroke-width': 5 });
+  }
+
+  function draw() {
+    var s = state, W = s.overallW, D = s.overallD, H = s.overallH;
+    var x0 = 140, top = 90, gy = top + H;
+    var yA = function (h) { return gy - h; };
+    var o = [];
+
+    /* front elevation */
+    o.push(el('text', { 'class': 'txtm', x: x0 + W / 2, y: top - 34, 'text-anchor': 'middle', 'font-size': 36, 'letter-spacing': 6 }, 'FRONT ELEVATION'));
+    o.push(el('rect', { 'class': 'st', x: x0 + 20, y: yA(H), width: W - 40, height: 34, 'stroke-width': 6 }));
+    o.push(el('rect', { 'class': 'st', x: x0 + 44, y: yA(H) + 34, width: 32, height: H - s.fireRim - 34, 'stroke-width': 6 }));
+    o.push(el('rect', { 'class': 'st', x: x0 + W - 76, y: yA(H) + 34, width: 32, height: H - s.fireRim - 34, 'stroke-width': 6 }));
+    /* wheel + crank */
+    o.push(el('circle', { 'class': 'st', cx: x0 + W - 60, cy: yA(H) + 150, r: 84, 'stroke-width': 12 }));
+    o.push(el('circle', { 'class': 'fi', cx: x0 + W - 60, cy: yA(H) + 150, r: 14 }));
+    o.push(el('line', { 'class': 'dim', x1: x0 + W + 18, y1: yA(H) + 112, x2: x0 + W + 76, y2: yA(H) + 74, 'stroke-width': 10, 'stroke-linecap': 'round' }));
+    /* hanging rail + hooks */
+    var yR = yA(s.railH);
+    o.push(el('line', { 'class': 'dim', x1: x0 + 76, y1: yR, x2: x0 + W - 76, y2: yR, 'stroke-width': 8 }));
+    for (var i = 0; i < 4; i++) {
+      var hx = x0 + 76 + (W - 152) * (0.18 + i * 0.21);
+      o.push('<path class="st" stroke-width="7" d="M' + hx + ' ' + yR + ' v46 a23 23 0 0 0 46 0"></path>');
+    }
+    /* firebox band + brick */
+    o.push(el('rect', { 'class': 'fsage', x: x0, y: yA(s.fireRim), width: W, height: s.fireRim - s.hearthPan, 'stroke-width': 6 }));
+    o.push(el('rect', { 'class': 'fbrick', x: x0 + 26, y: yA(s.fireFloor), width: W - 52, height: 18 }));
+    /* brasero */
+    var bx = x0 + 80;
+    o.push(el('rect', { 'class': 'st', x: bx, y: yA(s.fireFloor + s.braseroH), width: s.braseroW, height: s.braseroH, 'stroke-width': 8 }));
+    for (var b = 1; b < 7; b++) {
+      var bxx = bx + (s.braseroW / 7) * b;
+      o.push(el('line', { 'class': 'dim', x1: bxx, y1: yA(s.fireFloor + s.braseroH), x2: bxx, y2: yA(s.fireFloor), 'stroke-width': 5 }));
+    }
+    /* deck at mid travel + chains */
+    var deckX = bx + s.braseroW + 140;
+    var yD = yA((s.travelMin + s.travelMax) / 2);
+    o.push(el('line', { 'class': 'dim', x1: deckX + 120, y1: yR + 46, x2: deckX + 120, y2: yD, 'stroke-width': 5, 'stroke-dasharray': '14 14' }));
+    o.push(el('line', { 'class': 'dim', x1: deckX + s.deckW - 120, y1: yR + 46, x2: deckX + s.deckW - 120, y2: yD, 'stroke-width': 5, 'stroke-dasharray': '14 14' }));
+    o.push(el('rect', { 'class': 'fpaper', x: deckX, y: yD, width: s.deckW, height: 32, 'stroke-width': 6 }));
+    o.push(el('rect', { 'class': 'fi', x: deckX + bayW(), y: yD - 6, width: Math.max(12, s.centreRail), height: 44 }));
+    /* travel marker */
+    var tx = deckX - 64;
+    o.push(el('line', { 'class': 'dim', x1: tx, y1: yA(s.travelMax), x2: tx, y2: yA(s.travelMin), 'stroke-width': 4 }));
+    o.push('<path class="fi" d="M' + tx + ' ' + yA(s.travelMax) + ' l-13 26 l26 0 Z"></path>');
+    o.push('<path class="fi" d="M' + tx + ' ' + yA(s.travelMin) + ' l-13 -26 l26 0 Z"></path>');
+    o.push(el('text', { 'class': 'txt', x: tx + 20, y: yA((s.travelMin + s.travelMax) / 2) + 90, 'font-size': 32 }, 'TRVL ' + (s.travelMax - s.travelMin)));
+    /* cart + rack */
+    o.push(el('rect', { 'class': 'fi', x: x0 + 26, y: yA(s.hearthPan), width: 34, height: s.hearthPan - s.casterH }));
+    o.push(el('rect', { 'class': 'fi', x: x0 + W - 60, y: yA(s.hearthPan), width: 34, height: s.hearthPan - s.casterH }));
+    var shY = yA(s.casterH + 90);
+    o.push(el('rect', { 'class': 'st', x: x0 + 150, y: shY, width: W - 300, height: 46, 'stroke-width': 8 }));
+    for (var sl = 1; sl < 10; sl++) {
+      var slx = x0 + 150 + (W - 300) * sl / 10;
+      o.push(el('line', { 'class': 'dim', x1: slx, y1: shY, x2: slx, y2: shY + 46, 'stroke-width': 6 }));
+    }
+    /* casters */
+    var r = s.casterDia / 2;
+    [x0 + 70, x0 + W - 70].forEach(function (cx) {
+      o.push(el('rect', { 'class': 'fi', x: cx - 16, y: yA(s.casterH), width: 32, height: Math.max(10, s.casterH - s.casterDia) }));
+      o.push(el('circle', { 'class': 'st', cx: cx, cy: gy - r, r: r, 'stroke-width': 10 }));
+      o.push(el('circle', { 'class': 'fi', cx: cx, cy: gy - r, r: 10 }));
+    });
+    o.push(el('line', { 'class': 'dim', x1: x0 - 50, y1: gy, x2: x0 + W + 50, y2: gy, 'stroke-width': 5 }));
+
+    /* datum chain */
+    /* side bench, RH, removable */
+    o.push(el('rect', { 'class': 'fpaper', x: x0 + W, y: yA(s.fireRim), width: s.benchW, height: 26, 'stroke-width': 5 }));
+    o.push(el('line', { 'class': 'dim', x1: x0 + W + 20, y1: yA(s.fireRim) + 40, x2: x0 + W + 150, y2: yA(s.fireRim) + 170, 'stroke-width': 12, 'stroke-linecap': 'round' }));
+    o.push(el('line', { 'class': 'dim', x1: x0 + W, y1: yA(s.fireRim) - 46, x2: x0 + W + s.benchW, y2: yA(s.fireRim) - 46, 'stroke-width': 3 }));
+    o.push(el('line', { 'class': 'dim', x1: x0 + W - 18, y1: yA(s.fireRim) - 28, x2: x0 + W + 18, y2: yA(s.fireRim) - 64, 'stroke-width': 5 }));
+    o.push(el('line', { 'class': 'dim', x1: x0 + W + s.benchW - 18, y1: yA(s.fireRim) - 28, x2: x0 + W + s.benchW + 18, y2: yA(s.fireRim) - 64, 'stroke-width': 5 }));
+    o.push(el('text', { 'class': 'txt', x: x0 + W + s.benchW / 2, y: yA(s.fireRim) - 66, 'text-anchor': 'middle', 'font-size': 32 }, '+' + s.benchW + ' BENCH'));
+
+    var xd = x0 + W + s.benchW + 150;
+    [[gy, 0], [yA(s.fireFloor), s.fireFloor], [yA(s.fireRim), s.fireRim], [yA(H), H]].forEach(function (p) {
+      o.push(el('line', { 'class': 'dim', x1: xd - 26, y1: p[0], x2: xd + 26, y2: p[0], 'stroke-width': 3 }));
+    });
+    o.push(el('line', { 'class': 'dim', x1: xd, y1: yA(H), x2: xd, y2: gy, 'stroke-width': 3 }));
+    o.push(el('text', { 'class': 'txt', x: xd + 40, y: yA(s.fireFloor / 2) + 14, 'font-size': 38 }, s.fireFloor));
+    o.push(el('text', { 'class': 'txt', x: xd + 40, y: yA((s.fireFloor + s.fireRim) / 2) + 14, 'font-size': 38 }, s.fireRim - s.fireFloor));
+    o.push(el('text', { 'class': 'txt', x: xd + 40, y: yA((s.fireRim + H) / 2) + 14, 'font-size': 38 }, H - s.fireRim));
+
+    /* side elevation */
+    var xs = xd + 260;
+    o.push(el('text', { 'class': 'txtm', x: xs + D / 2, y: top - 34, 'text-anchor': 'middle', 'font-size': 36, 'letter-spacing': 6 }, 'SIDE'));
+    o.push(el('rect', { 'class': 'st', x: xs, y: yA(H), width: D, height: 34, 'stroke-width': 6 }));
+    o.push(el('rect', { 'class': 'st', x: xs + D / 2 - 16, y: yA(H) + 34, width: 32, height: H - s.fireRim - 34, 'stroke-width': 6 }));
+    o.push(el('rect', { 'class': 'fsage', x: xs, y: yA(s.fireRim), width: D, height: s.fireRim - s.hearthPan, 'stroke-width': 6 }));
+    o.push(el('rect', { 'class': 'fbrick', x: xs + 24, y: yA(s.fireFloor), width: D - 48, height: 18 }));
+    o.push(el('rect', { 'class': 'fi', x: xs + 24, y: yA(s.hearthPan), width: 32, height: s.hearthPan - s.casterH }));
+    o.push(el('rect', { 'class': 'fi', x: xs + D - 56, y: yA(s.hearthPan), width: 32, height: s.hearthPan - s.casterH }));
+    [xs + 62, xs + D - 62].forEach(function (cx) {
+      o.push(el('rect', { 'class': 'fi', x: cx - 16, y: yA(s.casterH), width: 32, height: Math.max(10, s.casterH - s.casterDia) }));
+      o.push(el('circle', { 'class': 'st', cx: cx, cy: gy - r, r: r, 'stroke-width': 10 }));
+    });
+    o.push(el('line', { 'class': 'dim', x1: xs - 40, y1: gy, x2: xs + D + 40, y2: gy, 'stroke-width': 5 }));
+
+    /* overall dims */
+    var xh = xs + D + 110;
+    o.push(dimTickH(xh, yA(H), gy));
+    o.push(el('text', { 'class': 'txt', x: xh + 34, y: yA(H / 2) + 14, 'font-size': 44, 'font-weight': 600 }, H));
+    o.push(dimTickW(gy + 100, x0, x0 + W));
+    o.push(el('text', { 'class': 'txt', x: x0 + W / 2, y: gy + 170, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 600 }, W));
+    o.push(dimTickW(gy + 100, xs, xs + D));
+    o.push(el('text', { 'class': 'txt', x: xs + D / 2, y: gy + 170, 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 600 }, D));
+
+    /* plan */
+    var py = gy + 280;
+    o.push(el('text', { 'class': 'txtm', x: x0 + W / 2, y: py - 30, 'text-anchor': 'middle', 'font-size': 36, 'letter-spacing': 6 }, 'PLAN — COOKING ZONES'));
+    o.push(el('rect', { 'class': 'st', x: x0, y: py, width: W, height: D, 'stroke-width': 6 }));
+    var sx = bx + (s.braseroW - s.secW) / 2;
+    o.push(el('rect', { 'class': 'st', x: sx, y: py + (D - s.secD) / 2, width: s.secW, height: Math.min(s.secD, D - 20), 'stroke-width': 4, 'stroke-dasharray': '16 10' }));
+    o.push(el('text', { 'class': 'txt', x: sx + s.secW / 2, y: py + D / 2 + 12, 'text-anchor': 'middle', 'font-size': 30 }, s.secW + '×' + s.secD));
+    var pdy = py + (D - s.deckD) / 2;
+    o.push(el('rect', { 'class': 'st', x: deckX, y: pdy, width: s.deckW, height: s.deckD, 'stroke-width': 5 }));
+    o.push(el('rect', { 'class': 'fi', x: deckX + bayW(), y: pdy, width: Math.max(12, s.centreRail), height: s.deckD }));
+    o.push(el('text', { 'class': 'txt', x: deckX + bayW() / 2, y: py + D / 2 + 12, 'text-anchor': 'middle', 'font-size': 30 }, Math.round(bayW()) + '×' + s.deckD));
+    o.push(el('text', { 'class': 'txt', x: deckX + bayW() * 1.5 + s.centreRail, y: py + D / 2 + 12, 'text-anchor': 'middle', 'font-size': 30 }, Math.round(bayW()) + '×' + s.deckD));
+    o.push(el('text', { 'class': 'txtm', x: deckX + s.deckW / 2, y: py + D + 56, 'text-anchor': 'middle', 'font-size': 28 }, 'DECK ' + s.deckW + '×' + s.deckD + ' · GRATE / PLANCHA · ANY BAY'));
+    o.push(el('rect', { 'class': 'st', x: x0 + W, y: py + (D - s.benchD) / 2, width: s.benchW, height: Math.min(s.benchD, D), 'stroke-width': 4, 'stroke-dasharray': '18 12' }));
+    o.push(el('text', { 'class': 'txt', x: x0 + W + s.benchW / 2, y: py + D / 2 + 12, 'text-anchor': 'middle', 'font-size': 30 }, 'BENCH ' + s.benchW + '×' + s.benchD));
+
+    var vw = xh + 320, vh = py + D + 120;
+    lastVB.w = vw; lastVB.h = vh;
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + vw + ' ' + vh + '">' + o.join('') + '</svg>';
+  }
+
+
+  /* ---------- FINISH REFERENCE ---------- */
+  var FINISH = {
+    powder: {
+      name: 'A · HIGH-TEMP POWDER OVER GALV', short: 'POWDER + GALV',
+      brand: 'WEBER cart frames · GOZNEY stands & mantels', tshort: '250–550 °C',
+      as: 'Tagwood uses plain heat-resistant paint — this is a grade above it',
+      temp: '250–550 °C continuous (silicone polyester)',
+      life: '20 yr+ · UV resistant · best colour range',
+      risk: 'Not food safe — external surfaces only',
+      source: 'Powder: Dulux / Interpon (Akzo) architectural exterior grade. Galv: hot-dip to AS/NZS 4680. Applied at the fabricator.',
+      sw: [['#7C8468','SAGE'],['#E4DFD2','BONE'],['#26261F','CHARCOAL']]
+    },
+    ceramic: {
+      name: 'B · CERAMIC BONDED COATING', short: 'CERAMIC BONDED',
+      brand: 'GOZNEY DOME outer casing', tshort: 'to ~980 °C',
+      as: 'The Gozney Dome route',
+      temp: 'up to ~980 °C · resists thermal shock, quench-safe',
+      life: '~5 yr · UV stable · water resistant',
+      risk: 'Shorter service life than powder; narrow colour range; licensed applicators only',
+      source: 'Cerakote (NIC Industries, USA) or equivalent industrial ceramic. Air / low-bake cured by a licensed applicator — adds a supply-chain step.',
+      sw: [['#2B2B27','GRAPHITE'],['#DED8C8','STONE'],['#6E6F66','SLATE']]
+    },
+    enamel: {
+      name: 'C · PORCELAIN ENAMEL', short: 'PORCELAIN ENAMEL',
+      brand: 'WEBER kettle bowls & lids', tshort: '500–600 °C',
+      as: 'The Weber kettle route',
+      temp: '500–600 °C service · fired at 815 °C',
+      life: 'Indefinite if unchipped · non-porous · food safe',
+      risk: 'A chip is bare steel with no protection. Poor fit for a welded box on castors.',
+      source: 'Enamel frit (Ferro / Prince) on decarburised enamelling-grade steel — NOT the 3.2 CRS specified. Fired in-line at an enamelling plant, Asia.',
+      sw: [['#1C1C1A','JET'],['#F0EAD8','IVORY'],['#4A5A46','BOTTLE']]
+    },
+    coastal: {
+      name: 'D · COASTAL — 316 + POWDER', short: 'COASTAL 316',
+      brand: 'TAGWOOD BBQ03SS all-stainless variant', tshort: '250–550 °C',
+      as: 'Tagwood sell an all-stainless SS model; this is the smarter half of it',
+      temp: 'As route A · 316 on cold-but-exposed parts only',
+      life: 'Best corrosion life in salt air',
+      risk: '316 gives no high-temp benefit over 304 — never specify it on hot parts',
+      source: '316 sheet/tube with mill certs, cart + bench + gantry + external fasteners. Hot parts stay 304.',
+      sw: [['#7C8468','SAGE'],['#C4C8C9','316 BRUSHED'],['#26261F','CHARCOAL']]
+    }
+  };
+
+  /* ---------- COSTING ENGINE (AUD, FOB China basis, batch-10 reference) ---------- */
+  var COST = { batch: 50, finish: 'powder', freight: 'lcl', margin: 2.5, basis: 'quote', fx: 1.45,
+               plancha: true, bench: true, tools: true, door: true, lift2: false, xl: false,
+               build: 'welded', coo: true, cont: 15, gstReg: true };
+
+  /* --- REAL-WORLD IMPORT CONSTANTS (checked 3 Sep 2026, sources in the notes) --- */
+  var FX_SPOT   = 1.396;  /* AUD per USD. AUD/USD spot 0.7161, 3 Sep 2026 */
+  var FX_PLAN   = 1.45;   /* spot + ~4%: retail spread + drift over a 25-day lead time */
+  var DUTY_GEN  = 0.05;   /* general rate if no valid ChAFTA Certificate of Origin */
+  var GST_RATE  = 0.10;
+  var IPC_SEA   = 201;    /* AUD, ABF import processing charge, sea, consignment > $10k */
+
+  var CORE = [
+    ['BODY CARCASS, FOLDED + WELDED, 3.2 CRS', 230, 'body'],
+    ['FIREBRICK LINER SET',                     60, 'body'],
+    ['GRILL MODULE x2, 304 V-CHANNEL',         190, 'deck'],
+    ['SECONDARY GRATE 304',                     45, 'cook'],
+    ['GRIDDLE 304 3.0 PLATE',                   55, 'cook'],
+    ['BRASERO CAGE 304, LIFT-OUT',             130, 'cook'],
+    ['LIFT GEAR: WHEEL, SPINDLE, CHAIN',       150, 'gear'],
+    ['HANGING RAIL + 4 S-HOOKS, 304',           45, 'gear'],
+    ['WATER DRAIN + ASH MANAGEMENT',            35, 'body'],
+    ['CART FRAME + SLATTED SHELF',             150, 'cart'],
+    ['CASTERS x4 D150, 2 LOCKING',              60, 'cart'],
+    ['MODULE CARRIAGE, 2-BAY, 304',            140, 'deck'],
+    ['FASTENERS / HARDWARE',                    40, 'cart']
+  ];
+  var OPTS = [
+    ['plancha', 'PLANCHA MODULE 304 5.0',      110, 'deck'],
+    ['bench',   'SIDE BENCH 304 1.5',           60, 'cook'],
+    ['tools',   'TOOL SET: SHOVEL + POKER',     40, 'cook'],
+    ['door',    'FRONT DOOR, CRS 3.2',          50, 'body'],
+    ['lift2',   '2nd LIFT GEAR (INDEP. BAYS)', 130, 'gear']
+  ];
+  var VOL = { 1: 2.15, 10: 1.00, 50: 0.86, 200: 0.78, 500: 0.74 };
+
+  /* --- REAL SUPPLIER QUOTE: Toshine TSPC01L Heavy-Duty Santa Maria, USD ex works --- */
+  var TOSHINE = [[1,600],[10,490],[25,460],[50,430],[100,395]];
+  var TOSHINE_DDP = 300;   /* USD/unit, sea freight DDP Sydney */
+  var TOSHINE_SPEC = '1620x710x1610 · 127 kg · 1.5-2.0 mm · AISI 304 / carbon · 25 working days';
+
+  function interp(tbl, q) {
+    if (q <= tbl[0][0]) return tbl[0][1];
+    if (q >= tbl[tbl.length-1][0]) return tbl[tbl.length-1][1];
+    for (var i = 1; i < tbl.length; i++) {
+      if (q <= tbl[i][0]) {
+        var a = tbl[i-1], b = tbl[i], f = (Math.log(q)-Math.log(a[0]))/(Math.log(b[0])-Math.log(a[0]));
+        return a[1] + (b[1]-a[1])*f;
+      }
+    }
+    return tbl[tbl.length-1][1];
+  }
+  function volFactor(q) {
+    var keys = Object.keys(VOL).map(Number).sort(function(a,b){return a-b;});
+    var tbl = keys.map(function(k){ return [k, VOL[k]]; });
+    return interp(tbl, q);
+  }
+
+  /* what our Rev G spec adds over the Toshine catalogue baseline (AUD/unit) */
+  function specAdders() {
+    var a = [];
+    a.push(['3.2 mm BODY (from their 1.5-2.0)', 110]);
+    a.push(['MODULAR 2-BAY DECK + CARRIAGE', 210]);
+    if (COST.plancha) a.push(['PLANCHA MODULE', 80]);
+    a.push(['FINISH UPGRADE — ' + FINISH[COST.finish].short, COST.finish === 'powder' ? 95 :
+            COST.finish === 'ceramic' ? 150 : COST.finish === 'enamel' ? 300 : 250]);
+    if (COST.build === 'mono') a.push(['MONOCOQUE SHELL + DROP-IN PAN', 135]);
+    if (COST.build === 'wrap') a.push(['FOLDED WRAP + SEALED CAVITY', 10]);
+    if (COST.bench) a.push(['SIDE BENCH', 35]);
+    if (COST.lift2) a.push(['2nd LIFT GEAR', 95]);
+    if (COST.xl)    a.push(['XL BODY (+500 W)', 180]);
+    return a;
+  }
+
+  /* areas are read live off the drawing state, so geometry edits move the cost */
+  function coatAreas() {
+    var s = state, band = s.fireRim - s.hearthPan, W = s.overallW, D = s.overallD;
+    var casing1 = (2*W*band + 2*D*band + (COST.door ? 400*300 : 0)) / 1e6;
+    var cart = 14.25 * 0.1 * (W/1450);
+    return { casing1: casing1, casing2: casing1*2, cart: cart };
+  }
+
+  function finishCost(qty) {
+    var a = coatAreas();
+    var cartPc = a.cart * (35 + 25);
+    if (COST.finish === 'enamel')
+      return a.casing2 * 90 * 1.12 + cartPc + 1600/qty + 120/qty;
+    if (COST.finish === 'ceramic')
+      return a.casing1 * (78 + 25) + cartPc + 600/qty + 120/qty;
+    var pc = a.casing1 * (49 + 25) + cartPc + 240/qty;
+    if (COST.finish === 'coastal') pc += 180;   /* 316 upcharge: cart, bench, gantry, fasteners */
+    return pc;
+  }
+
+  function costModel() {
+    var qty = COST.batch, vm = volFactor(qty);
+    var xl = COST.xl ? 1.18 : 1;                /* XL: +500 W on carcass, deck, cart, crate */
+    var lines = [], groups = {};
+    function push(name, amt, grp) {
+      lines.push([name, amt]);
+      groups[grp] = (groups[grp] || 0) + amt;
+    }
+    CORE.forEach(function (r) {
+      var scale = (r[2] === 'body' || r[2] === 'cart' || r[2] === 'deck') ? xl : 1;
+      var amt = r[1], nm = r[0];
+      if (COST.build === 'wrap') {
+        if (nm.indexOf('FIREBRICK') === 0) { nm = '304 SS WALL SKIN + SEALED CERAMIC FIBRE + 5mm FLOOR PLATE'; amt = 95; }
+        if (nm.indexOf('BODY CARCASS') === 0) { nm = 'BODY CARCASS, ONE-PIECE FOLDED WRAP, 3.2 CRS'; amt = 205; }
+      }
+      if (COST.build === 'mono') {
+        if (nm.indexOf('BODY CARCASS') === 0) { nm = 'MONOCOQUE SHELL, ROLLED 1-PIECE, LARGE RADIUS, 3.2 CRS'; amt = 240; }
+        if (nm.indexOf('FIREBRICK') === 0) { nm = 'DROP-IN FIRE PAN — 304 WALLS + 5mm CARBON FLOOR + FLANGE'; amt = 185; }
+      }
+      push(nm, amt * vm * scale, r[2]);
+    });
+    OPTS.forEach(function (o) {
+      if (COST[o[0]]) push(o[1], o[2] * vm, o[3]);
+    });
+    var fin = finishCost(qty) * xl;
+    push('COATING / FINISH — ' + COST.finish.toUpperCase(), fin, 'finish');
+    push('EXPORT CRATE', 70 * vm * xl, 'ship');
+    push('ASSEMBLY / QC / PASSIVATION', 120 * vm, 'body');
+
+    var fob = lines.reduce(function (t, l) { return t + l[1]; }, 0);
+    var freight = (COST.freight === 'fcl' ? 155 : 260) * xl;
+    var quoteBase = interp(TOSHINE, qty) * COST.fx;
+    var adders = specAdders();
+    if (COST.basis === 'quote') {
+      lines = [['TOSHINE TSPC01L BASELINE (real quote, qty ' + qty + ')', quoteBase]];
+      groups = { body: quoteBase };
+      adders.forEach(function (a) { lines.push(['+ ' + a[0], a[1]]); groups.deck = (groups.deck||0) + a[1]; });
+      fob = lines.reduce(function (t, l) { return t + l[1]; }, 0);
+      freight = TOSHINE_DDP * COST.fx;
+    }
+    /* --- import charges, AU rules. Duty is on the customs value (FOB). GST is on the
+       Value of Taxable Importation = customs value + international transport/insurance
+       + duty. IPC is per consignment, so it amortises over the batch. --- */
+    var duty = COST.coo ? 0 : fob * DUTY_GEN;
+    var voti = fob + freight + duty;
+    var gst  = voti * GST_RATE;
+    var ipc  = IPC_SEA / qty;
+    var cont = (fob + freight) * (COST.cont / 100);
+    var other = COST.basis === 'quote' ? 0 : 25 + 90;   /* built-up basis carried QC + PL cover */
+
+    /* GST is recoverable if registered, so it is cash-out, not unit cost. */
+    var landed = fob + freight + duty + ipc + cont + other;
+    var cashOut = landed + (COST.gstReg ? 0 : gst);
+    var rrp = landed * COST.margin * 1.10;
+    var gm = (1 - 1/COST.margin) * 100;
+    var kg = 110 * (COST.xl ? 1.15 : 1);
+    if (COST.build === 'wrap') kg -= 25;
+    if (COST.build === 'mono') kg -= 5;
+    if (!COST.plancha) kg -= 7;
+    if (!COST.bench) kg -= 4;
+    return { qty: qty, lines: lines, groups: groups, fob: fob, freight: freight,
+             landed: landed, rrp: rrp, gm: gm, vm: vm, kg: kg,
+             duty: duty, gst: gst, ipc: ipc, cont: cont, voti: voti, cashOut: cashOut,
+             quoteBase: quoteBase, quoteLanded: (interp(TOSHINE, qty) + TOSHINE_DDP) * COST.fx,
+             adders: adders };
+  }
+
+  function money(n) { return '$' + Math.round(n).toLocaleString(); }
+
+  function finishPicker() {
+    var qty = COST.batch, keep = COST.finish, cards = '';
+    ['powder','ceramic','enamel','coastal'].forEach(function (k) {
+      COST.finish = k;
+      var cost = finishCost(qty) * (COST.xl ? 1.18 : 1);
+      var f = FINISH[k], on = (k === keep);
+      var sw = f.sw.map(function (c) {
+        return '<span style="flex:1;height:14px;background:' + c[0] + '"></span>';
+      }).join('');
+      cards +=
+        '<button class="fcard' + (on ? ' on' : '') + '" data-f="' + k + '" type="button">' +
+          '<div class="fc-sw">' + sw + '</div>' +
+          '<div class="fc-nm">' + f.name.split(' · ')[0] + ' &middot; ' + f.short + '</div>' +
+          '<div class="fc-br">' + f.brand + '</div>' +
+          '<div class="fc-bt"><span class="fc-tp">' + f.tshort + '</span>' +
+          '<span class="fc-pr">' + money(cost) + '</span></div>' +
+        '</button>';
+    });
+    COST.finish = keep;
+    return '<div class="fgrid">' + cards + '</div>' +
+      '<div class="cnote" style="margin:-2px 0 12px 0">Click a finish to price the whole build on it. ' +
+      'Reference: <b>Tagwood BBQ03SI uses plain heat-resistant paint</b> — below all four.</div>';
+  }
+
+  /* ---------- what is checked, what is assumed, what could bite ---------- */
+  function groundingCard() {
+    function row(state, txt) {
+      var c = state === 'ok' ? 'var(--ok)' : state === 'warn' ? 'var(--warn)' : 'var(--muted)';
+      var mark = state === 'ok' ? 'CHECKED' : state === 'warn' ? 'RISK' : 'ASSUMED';
+      return '<div style="display:grid;grid-template-columns:74px 1fr;gap:10px;padding:4px 0;' +
+        'border-top:1px solid var(--line)">' +
+        '<span style="color:' + c + ';font-size:9.5px;letter-spacing:.12em;padding-top:2px">' + mark + '</span>' +
+        '<span>' + txt + '</span></div>';
+    }
+    return '<div style="margin-top:14px;padding:13px 15px;border:2px solid var(--ink);' +
+      'background:var(--surface);font-size:11px;line-height:1.5">' +
+      '<div style="font-size:10px;letter-spacing:.16em;color:var(--muted);margin-bottom:8px">' +
+        'WHERE THE NUMBERS COME FROM</div>' +
+      row('ok', '<b>Unit price.</b> Toshine TSPC01L, offer V41: USD 600 / 490 / 460 / 430 / 395 at ' +
+        '1 / 10 / 25 / 50 / 100 units, ex works, plus USD 300 DDP Sydney. In-between batches are ' +
+        'log-interpolated across those five points.') +
+      row('ok', '<b>FX.</b> AUD/USD spot 0.7161 on 3 Sep 2026 = ' + FX_SPOT.toFixed(3) +
+        ' AUD per USD. Planning rate ' + FX_PLAN.toFixed(2) + '.') +
+      row('ok', '<b>Duty.</b> 0% under ChAFTA with a valid Certificate of Origin from an authorised ' +
+        'Chinese body. Without it, the general rate applies.') +
+      row('ok', '<b>GST.</b> 10% on the Value of Taxable Importation = customs value + international ' +
+        'transport and insurance + duty. Recoverable on the BAS if registered.') +
+      row('ok', '<b>Import processing charge.</b> AUD ' + IPC_SEA + ' per sea consignment over ' +
+        'AUD 10,000, lodged electronically. Per consignment, not per unit.') +
+      row('warn', '<b>&ldquo;DDP&rdquo; from a Chinese supplier is usually DAP in practice.</b> ' +
+        'A foreign supplier has no ABN and cannot remit your GST. Assume the GST, the processing ' +
+        'charge and the final leg land on you until the forwarder confirms otherwise in writing.') +
+      row('warn', '<b>The crate is volumetric, not heavy.</b> About 2.6 m&sup3; at ~127 kg. ' +
+        'LCL is charged on cubic metres, so freight per unit stays stubborn until the batch fills ' +
+        'a container. That is the real argument for a bigger first run, not the unit price curve.') +
+      row('warn', '<b>Their quote is not our product.</b> Half the wall thickness, no modular deck, ' +
+        'finish unspecified. Every adder above is our estimate over their baseline &mdash; ' +
+        'estimates, not quotes.') +
+      row('assumed', '<b>Not yet priced anywhere:</b> tooling and first-article sample, ' +
+        'pre-shipment inspection, product liability cover, warranty and spares, ' +
+        'Australian storage and last-mile delivery, returns.') +
+      row('assumed', '<b>Quote validity.</b> Offers of this kind usually hold 30 days and move with ' +
+        'steel and container rates. Re-confirm before committing to a batch.') +
+      '<div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted)">' +
+        'Sources: abf.gov.au (import processing charge, GST on imports) &middot; ' +
+        'dfat.gov.au ChAFTA &middot; FX spot 3 Sep 2026. ' +
+        'Everything marked ASSUMED is a hole in the model, not a number.</div>' +
+      '</div>';
+  }
+
+  function benchmarkCard() {
+    var m = costModel(), q = m.qty;
+    var tUSD = interp(TOSHINE, q);
+    var rows = TOSHINE.map(function (p) {
+      return '<div style="display:flex;justify-content:space-between;padding:2px 0' +
+        (Math.abs(p[0]-q) < 0.5 ? ';font-weight:700' : ';color:var(--muted)') + '">' +
+        '<span>' + p[0] + ' unit' + (p[0]>1?'s':'') + '</span><span>USD $' + p[1] + '</span></div>';
+    }).join('');
+    var delta = m.landed - m.quoteLanded;
+    return '<div style="margin-top:14px;padding:13px 15px;border:2px solid var(--ink);background:var(--surface);' +
+      'display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:22px;font-size:11px;line-height:1.55">' +
+      '<div><b style="color:var(--ink)">TOSHINE TSPC01L — REAL QUOTE</b><br>' +
+        '<span style="color:var(--muted)">' + TOSHINE_SPEC + '</span>' +
+        '<div style="margin-top:7px;padding-top:6px;border-top:1px solid var(--line)">' + rows + '</div>' +
+        '<div style="margin-top:5px;padding-top:5px;border-top:1px solid var(--line);display:flex;justify-content:space-between">' +
+        '<span>+ DDP Sydney</span><span>USD $' + TOSHINE_DDP + '</span></div></div>' +
+      '<div><b style="color:var(--ink)">AT YOUR BATCH OF ' + q + '</b><br>' +
+        '<div style="margin-top:7px">Toshine ex-works &nbsp;<b>USD $' + Math.round(tUSD) + '</b><br>' +
+        '+ DDP &nbsp;USD $' + TOSHINE_DDP + '<br>' +
+        '&times; FX ' + COST.fx.toFixed(2) + '<br>' +
+        '<span style="font-size:16px;font-weight:700">= ' + money(m.quoteLanded) + '</span> landed AUD</div>' +
+        '<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)">Your spec, this config<br>' +
+        '<span style="font-size:16px;font-weight:700">' + money(m.landed) + '</span><br>' +
+        '<span class="' + (delta > 0 ? 'cwarn' : 'ok') + '">' + (delta>0?'+':'') + money(delta) + ' over baseline</span></div></div>' +
+      '<div><b style="color:var(--ink)">WHY THEIRS IS CHEAPER — AND WHY IT IS NOT THE SAME PRODUCT</b><br>' +
+        '&ndash; <b>1.5&ndash;2.0 mm steel vs our 3.2 mm.</b> Their "heavy-duty" is half our wall. Tagwood is 3.2 &mdash; that is the grade we benchmarked.<br>' +
+        '&ndash; <b>No modular two-bay deck.</b> Our differentiator is not in their catalogue.<br>' +
+        '&ndash; <b>Finish unspecified.</b> "AISI 304 / carbon" says nothing about powder, galv, colour or UV.<br>' +
+        '&ndash; <b>Deeper body</b> (710 vs our 508) and 127 kg &mdash; a different footprint, not a like-for-like.<br>' +
+        '&ndash; <b>Their DDP $300/unit is dearer than my LCL estimate</b> &mdash; but it is door-delivered with duty in, which mine was not.<br>' +
+        '<span style="color:var(--muted)">Treat the quote as the floor for a catalogue unit and the adders as the price of being different.</span></div>' +
+      '</div>';
+  }
+
+  function methodCard() {
+    if (COST.build === 'welded') return '';
+    var b = '';
+    if (COST.build === 'wrap') b =
+      '<b style="color:var(--ink)">FOLDED WRAP + SEALED CAVITY</b><br>' +
+      'Front and both ends off one blank: four corner welds become one seam. 304 wall skin (non-porous — this firebox ' +
+      'is rained into), ceramic fibre sealed in the cavity, 5 mm carbon floor where coals sit. Large-radius bends give ' +
+      'the moulded read without press tooling.<br>' +
+      '<span style="color:var(--muted)">Ooni Karu / Koda arrangement. Requires the item-10 drain treated as structural.</span>';
+    if (COST.build === 'mono') b =
+      '<b style="color:var(--ink)">MONOCOQUE SHELL + DROP-IN FIRE PAN &nbsp;·&nbsp; see SE-09</b><br>' +
+      'One continuous rolled sage shell — <b>no seam, no gap, no fastener visible outside.</b> It is skin and structure ' +
+      'only and never meets fire, so the green is never at risk. A <b>drop-in 304 pan</b> with a 5 mm carbon floor carries ' +
+      'the coals and lifts out complete. The 18–20 mm air gap sits <b>inside</b>, behind the pan wall, capped by the pan ' +
+      'flange — concealed, not a styling gap. Optional fibre bonds to the <i>pan</i>, so insulation stays captive and dry.<br>' +
+      '<span style="color:var(--muted)">The flange is the only visible transition and reads as a deliberate stainless rim ' +
+      'line against the sage. Cleaning is lift-the-pan. The wear part becomes a sellable spare. ' +
+      'PROVE FIRST: pan wall temp at the coal line, shell skin temp, rain-then-fire, pan wall stiffness (rib it), ' +
+      'and roll capacity for 3.2 at 1450.</span>';
+    return '<div style="margin-top:12px;padding:12px 14px;border:1.5px solid var(--sage-deep);background:var(--surface);' +
+      'font-size:11px;line-height:1.55">' + b + '</div>';
+  }
+
+  function finishCard() {
+    var f = FINISH[COST.finish], qty = COST.batch;
+    var sw = f.sw.map(function (c) {
+      return '<div style="display:flex;flex-direction:column;gap:4px;align-items:center">' +
+        '<div style="width:56px;height:38px;background:' + c[0] + ';border:1.5px solid var(--ink)"></div>' +
+        '<div style="font-size:9.5px;letter-spacing:.06em">' + c[1] + '</div>' +
+        '<div style="font-size:9px;color:var(--muted)">' + c[0] + '</div></div>';
+    }).join('');
+    /* per-unit finish cost for each route, same batch, so they are comparable */
+    var keep = COST.finish, row = '';
+    ['powder','ceramic','enamel','coastal'].forEach(function (k) {
+      COST.finish = k;
+      var c = finishCost(qty) * (COST.xl ? 1.18 : 1);
+      row += '<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0' +
+        (k === keep ? ';font-weight:700' : ';color:var(--muted)') + '">' +
+        '<span>' + FINISH[k].name.split(' · ')[0] + ' ' + FINISH[k].name.split(' · ')[1] + '</span>' +
+        '<span style="font-variant-numeric:tabular-nums">' + money(c) + '</span></div>';
+    });
+    COST.finish = keep;
+    return '<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--ink);' +
+      'display:grid;grid-template-columns:auto 1fr 1fr;gap:22px;align-items:start">' +
+      '<div style="display:flex;gap:8px">' + sw + '</div>' +
+      '<div class="cnote" style="color:var(--ink)">' +
+        '<b>' + f.name + '</b><br><span style="color:var(--muted)">' + f.as + '</span><br><br>' +
+        '<b>TEMP</b> ' + f.temp + '<br><b>LIFE</b> ' + f.life + '<br>' +
+        '<span class="cwarn"><b>RISK</b> ' + f.risk + '</span></div>' +
+      '<div class="cnote">' +
+        '<b style="color:var(--ink)">MATERIAL SOURCE</b><br>' + f.source +
+        '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line)">' +
+        '<b style="color:var(--ink)">ALL FOUR AT BATCH ' + qty + '</b>' + row + '</div></div>' +
+      '</div>';
+  }
+
+  function renderCost() {
+    var m = costModel();
+    var TAG_LO = 4500, TAG_HI = 5500;
+    var pos = m.rrp < TAG_LO ? 'UNDER TAGWOOD — room to price up'
+            : m.rrp <= TAG_HI ? 'INSIDE TAGWOOD BAND'
+            : 'ABOVE TAGWOOD — must justify on the modular deck';
+    var posCls = m.rrp > TAG_HI ? 'cwarn' : '';
+
+    var cols = { body:'#7c8468', deck:'#59614a', cook:'#c4c8c9', gear:'#9aa0a2',
+                 cart:'#26261f', finish:'#c9a27a', ship:'#d3cfc0' };
+    var bar = '', tot = m.fob;
+    Object.keys(m.groups).forEach(function (g) {
+      bar += '<span style="width:' + (m.groups[g]/tot*100).toFixed(1) + '%;background:' + (cols[g]||'#888') + '"></span>';
+    });
+
+    var rows = m.lines.map(function (l) {
+      return '<div class="k">' + l[0] + '</div><div class="v">' + money(l[1]) + '</div>';
+    }).join('');
+
+    var deckShare = ((m.groups.deck || 0) / m.fob * 100).toFixed(0);
+
+    document.getElementById('costBasis').textContent =
+      'BATCH ' + m.qty + ' · ' + (COST.basis === 'quote' ? 'TOSHINE QUOTE BASIS · FX ' + COST.fx.toFixed(2) : 'BUILT-UP ESTIMATE') +
+      ' · ' + COST.finish.toUpperCase() + (COST.xl ? ' · XL' : '');
+
+    document.getElementById('costOut').innerHTML =
+      finishPicker() +
+      '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:26px;">' +
+        '<div><div class="cout">' + rows +
+          '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">FOB SUBTOTAL</div>' +
+          '<div class="v" style="border-top:2px solid var(--ink);padding-top:6px">' + money(m.fob) + '</div>' +
+        '</div>' +
+        '<div class="cbar">' + bar + '</div>' +
+        '<div class="cnote">Modular deck (grates + plancha + carriage) = <b>' + deckShare + '%</b> of build cost — the differentiator. Cut elsewhere first.</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="cout">' +
+            '<div class="k">FOB</div><div class="v">' + money(m.fob) + '</div>' +
+            (COST.basis === 'quote'
+              ? '<div class="k">DDP SYDNEY (quoted, USD ' + TOSHINE_DDP + ')</div><div class="v">' + money(m.freight) + '</div>'
+              : '<div class="k">SEA FREIGHT (' + COST.freight.toUpperCase() + ')</div><div class="v">' + money(m.freight) + '</div>' +
+                '<div class="k">INSURANCE + PORT / CARTAGE</div><div class="v">$115</div>') +
+            '<div class="k">DUTY ' + (COST.coo
+                ? '&mdash; ChAFTA, valid COO</div><div class="v" style="color:var(--ok)">$0</div>'
+                : '&mdash; NO COO, general 5%</div><div class="v" style="color:var(--warn)">' + money(m.duty) + '</div>') +
+            '<div class="k">IMPORT PROCESSING (' + money(IPC_SEA) + ' &divide; ' + m.qty + ')</div>' +
+              '<div class="v">' + money(m.ipc) + '</div>' +
+            '<div class="k">CONTINGENCY ' + COST.cont + '%</div><div class="v">' + money(m.cont) + '</div>' +
+            '<div class="k" style="border-top:2px solid var(--ink);padding-top:6px;font-weight:600;color:var(--ink)">LANDED COST ex-GST</div>' +
+            '<div class="v" style="border-top:2px solid var(--ink);padding-top:6px">' + money(m.landed) + '</div>' +
+            '<div class="k" style="color:var(--muted)">GST 10% on VoTI ' + money(m.voti) + '</div>' +
+            '<div class="v" style="color:var(--muted)">' + money(m.gst) +
+              (COST.gstReg ? ' <span style="font-size:9px">CLAIMED BACK</span>' : ' <span style="font-size:9px;color:var(--warn)">A COST</span>') + '</div>' +
+            '<div class="k" style="color:var(--muted)">CASH OUT PER UNIT</div>' +
+            '<div class="v" style="color:var(--muted)">' + money(m.cashOut) + '</div>' +
+          '</div>' +
+          '<div class="cnote" style="margin-top:8px">Working capital for this batch: <b style="color:var(--ink)">' +
+            money(m.cashOut * m.qty) + '</b> out before the first sale' +
+            (COST.gstReg ? ', with ' + money(m.gst * m.qty) + ' GST back on the next BAS.' : '.') + '</div>' +
+          '<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--ink)">' +
+            '<div class="k" style="font-size:11px;letter-spacing:.14em;color:var(--muted)">RRP inc GST @ ' + COST.margin.toFixed(1) + '×</div>' +
+            '<div class="cbig">' + money(m.rrp) + '</div>' +
+            '<div class="cnote">Gross margin ' + m.gm.toFixed(0) + '% · <span class="' + posCls + '">' + pos + '</span></div>' +
+            '<div class="cnote" style="margin-top:8px">Tagwood BBQ03SI benchmark: $4,500–5,500 · volume factor ' + m.vm.toFixed(2) + '×</div>' +
+            '<div class="cnote" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">' +
+              'SHIPPING WEIGHT <b style="color:var(--ink)">' + Math.round(m.kg) + ' kg</b>' +
+              (COST.liner ? ' &nbsp;<span style="color:var(--ok)">&minus;25 kg vs brick walls</span>' : '') +
+              ' &nbsp;·&nbsp; Tagwood 124.7 kg</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      benchmarkCard() + finishCard() + methodCard() +
+      '<div class="cnote" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">' +
+      (COST.basis === 'quote'
+        ? 'BASELINE IS A REAL QUOTE (Toshine TSPC01L, V41). The adders over it are estimates. '
+        : 'BUILT-UP ESTIMATE — part prices are judgement and ran about 2x the real quote. Kept for comparison only. ') +
+      'Coating cost is computed live from the drawing geometry, so changing the body dimensions moves the cost. ' +
+      'Replace with real quotes before committing.</div>' +
+      groundingCard();
+  }
+
+  /* ---------- ui ---------- */
+  function buildRail() {
+    var rail = document.getElementById('rail');
+    var html = '';
+    FIELDS.forEach(function (g) {
+      html += '<div class="grp"><h2>' + g.grp + '</h2>';
+      g.items.forEach(function (it) {
+        html += '<div class="row"><label for="f_' + it[0] + '">' + it[1] + '</label>' +
+          '<span class="in"><input id="f_' + it[0] + '" data-k="' + it[0] +
+          '" type="number" min="1" max="5000" step="1" value="' + state[it[0]] + '">' +
+          '<span class="unit">mm</span></span></div>';
+      });
+      html += '</div>';
+    });
+    html += '<div class="grp"><h2>PRODUCTION RUN</h2>' +
+      '<div class="crow"><label for="c_batch">Batch size (any number)</label>' +
+      '<input id="c_batch" data-c="batch" type="number" min="1" max="5000" step="1" value="50"></div>' +
+      '<div class="crow"><label for="c_basis">Cost basis</label>' +
+      '<select id="c_basis" data-c="basis">' +
+      '<option value="quote">Toshine quote (real)</option>' +
+      '<option value="est">Built-up estimate</option></select></div>' +
+      '<div class="crow"><label for="c_fx">FX AUD per USD</label>' +
+      '<input id="c_fx" data-c="fx" type="number" min="1" max="2.5" step="0.01" value="' + FX_PLAN + '"></div>' +
+      '<div class="cnote" style="margin:-4px 0 8px 0">Spot ' + FX_SPOT.toFixed(3) +
+      ' (3 Sep 26). Planning at ' + FX_PLAN.toFixed(2) + ' &mdash; spread + drift over a 25-day lead time.</div>' +
+      '<div class="crow"><label for="c_finish">Finish route</label>' +
+      '<select id="c_finish" data-c="finish"><option value="powder">A · Powder + galv</option>' +
+      '<option value="ceramic">B · Ceramic bonded</option>' +
+      '<option value="enamel">C · Porcelain enamel</option>' +
+      '<option value="coastal">D · Coastal 316 + powder</option></select></div>' +
+      '<div class="crow"><label for="c_freight">Freight</label>' +
+      '<select id="c_freight" data-c="freight"><option value="lcl">Sea LCL</option>' +
+      '<option value="fcl">Sea FCL (20ft)</option></select></div>' +
+      '<div class="crow"><label for="c_margin">Margin multiple</label>' +
+      '<input id="c_margin" data-c="margin" type="number" min="1.2" max="5" step="0.1" value="2.5"></div>' +
+      '</div>';
+    html += '<div class="grp"><h2>IMPORT &amp; RISK</h2>' +
+      '<div class="crow"><label for="o_coo">ChAFTA cert. of origin held</label>' +
+      '<input id="o_coo" data-o="coo" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_gstReg">GST registered (claim back)</label>' +
+      '<input id="o_gstReg" data-o="gstReg" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="c_cont">Contingency %</label>' +
+      '<input id="c_cont" data-c="cont" type="number" min="0" max="50" step="1" value="15"></div>' +
+      '<div class="cnote" style="margin-top:6px">Untick the COO and duty goes to 5% of FOB. ' +
+      'Untick GST registration and the 10% stops being recoverable and becomes real cost.</div>' +
+      '</div>';
+    html += '<div class="grp"><h2>FEATURES</h2>' +
+      '<div class="crow"><label for="o_plancha">Plancha module</label><input id="o_plancha" data-o="plancha" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_bench">Side bench</label><input id="o_bench" data-o="bench" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_tools">Tool set</label><input id="o_tools" data-o="tools" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_door">Front door</label><input id="o_door" data-o="door" type="checkbox" checked></div>' +
+      '<div class="crow"><label for="o_lift2">2nd lift gear</label><input id="o_lift2" data-o="lift2" type="checkbox"></div>' +
+      '<div class="crow"><label for="o_xl">XL body (+500 W)</label><input id="o_xl" data-o="xl" type="checkbox"></div>' +
+      '</div>';
+    html += '<div class="grp"><h2>BUILD METHOD</h2>' +
+      '<div class="crow"><label for="c_build">Construction</label>' +
+      '<select id="c_build" data-c="build">' +
+      '<option value="welded">Welded box + firebrick</option>' +
+      '<option value="wrap">Folded wrap + sealed cavity</option>' +
+      '<option value="mono">Monocoque + drop-in pan</option>' +
+      '</select></div>' +
+      '</div>';
+    html += '<div class="derived" id="derived"></div>';
+    html += '<div class="warnings" id="warnings"></div>';
+    rail.innerHTML = html;
+    rail.addEventListener('change', function (e) {
+      var c = e.target && e.target.getAttribute('data-c');
+      var o = e.target && e.target.getAttribute('data-o');
+      if (c) {
+        COST[c] = (c === 'batch') ? Math.max(1, Math.min(5000, Math.round(Number(e.target.value)) || 1))
+                : (c === 'margin') ? Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5))
+                : (c === 'fx') ? Math.max(1, Math.min(2.5, Number(e.target.value) || FX_PLAN))
+                : (c === 'cont') ? Math.max(0, Math.min(50, Number(e.target.value) || 0))
+                : e.target.value;
+        renderCost();
+      } else if (o) {
+        COST[o] = e.target.checked;
+        renderCost();
+      }
+    });
+    rail.addEventListener('input', function (e) {
+      var k = e.target && e.target.getAttribute('data-k');
+      var lc = e.target && e.target.getAttribute('data-c');
+      if (lc === 'margin') { COST.margin = Math.max(1.2, Math.min(5, Number(e.target.value) || 2.5)); renderCost(); }
+      if (lc === 'batch')  { COST.batch  = Math.max(1, Math.min(5000, Math.round(Number(e.target.value)) || 1)); renderCost(); }
+      if (lc === 'fx')     { COST.fx     = Math.max(1, Math.min(2.5, Number(e.target.value) || FX_PLAN)); renderCost(); }
+      if (lc === 'cont')   { COST.cont   = Math.max(0, Math.min(50, Number(e.target.value) || 0)); renderCost(); }
+      if (!k) return;
+      var v = Number(e.target.value);
+      if (isFinite(v) && v >= 1 && v <= 5000) {
+        state[k] = Math.round(v);
+        save();
+        refresh(false);
+      }
+    });
+  }
+
+  function refresh(fillInputs) {
+    if (fillInputs) {
+      Object.keys(DEFAULTS).forEach(function (k) {
+        var inEl = document.getElementById('f_' + k);
+        if (inEl) inEl.value = state[k];
+      });
+    }
+    document.getElementById('dwg').innerHTML = draw();
+    applyView();
+    document.getElementById('chain').textContent = chainText();
+    document.getElementById('scaleNote').textContent =
+      'ENV ' + state.overallW + ' × ' + state.overallD + ' × ' + state.overallH + ' mm';
+    var derived = document.getElementById('derived');
+    derived.innerHTML = '<b>Derived:</b> bay ' + Math.round(bayW()) + '×' + state.deckD +
+      ' ×2 · travel ' + (state.travelMax - state.travelMin) +
+      ' · firebox walls ' + (state.fireRim - state.fireFloor) +
+      ' · gantry ' + (state.overallH - state.fireRim);
+    var w = checks();
+    var warnBox = document.getElementById('warnings');
+    warnBox.innerHTML = w.map(function (m) { return '<div>' + m + '</div>'; }).join('');
+    var pill = document.getElementById('pill');
+    if (w.length === 0) {
+      pill.className = 'pill';
+      pill.textContent = 'STACK OK · ' + state.overallH;
+    } else {
+      pill.className = 'pill warn';
+      pill.textContent = w.length + ' CHECK' + (w.length > 1 ? 'S' : '') + ' FAILING';
+    }
+    if (scene3) build3();
+    renderCost();
+  }
+
+  /* pan + zoom on the 2D drawing */
+  function applyView() {
+    var svg = document.querySelector('#dwg svg');
+    if (!svg) return;
+    svg.setAttribute('viewBox', view.x + ' ' + view.y + ' ' + (lastVB.w / view.k) + ' ' + (lastVB.h / view.k));
+  }
+  (function () {
+    var dwgEl = document.getElementById('dwg');
+    var panning = false, pX = 0, pY = 0;
+    dwgEl.style.cursor = 'grab';
+    dwgEl.style.touchAction = 'none';
+    dwgEl.addEventListener('pointerdown', function (e) {
+      panning = true; pX = e.clientX; pY = e.clientY;
+      dwgEl.setPointerCapture(e.pointerId); dwgEl.style.cursor = 'grabbing';
+    });
+    dwgEl.addEventListener('pointermove', function (e) {
+      if (!panning) return;
+      var svg = dwgEl.querySelector('svg');
+      if (!svg || !svg.clientWidth) return;
+      var scale = (lastVB.w / view.k) / svg.clientWidth;
+      view.x -= (e.clientX - pX) * scale;
+      view.y -= (e.clientY - pY) * scale;
+      pX = e.clientX; pY = e.clientY;
+      applyView();
+    });
+    dwgEl.addEventListener('pointerup', function () { panning = false; dwgEl.style.cursor = 'grab'; });
+    dwgEl.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var svg = dwgEl.querySelector('svg');
+      if (!svg) return;
+      var r = svg.getBoundingClientRect();
+      var mx = view.x + (e.clientX - r.left) / r.width * (lastVB.w / view.k);
+      var my = view.y + (e.clientY - r.top) / r.height * (lastVB.h / view.k);
+      var k2 = Math.max(0.5, Math.min(8, view.k * (e.deltaY < 0 ? 1.12 : 0.89)));
+      view.x = mx - (mx - view.x) * (view.k / k2);
+      view.y = my - (my - view.y) * (view.k / k2);
+      view.k = k2;
+      applyView();
+    }, { passive: false });
+    document.getElementById('btnView').addEventListener('click', function () {
+      view = { x: 0, y: 0, k: 1 };
+      applyView();
+    });
+  })();
+
+  document.getElementById('btnReset').addEventListener('click', function () {
+    Object.keys(DEFAULTS).forEach(function (k) { state[k] = DEFAULTS[k]; });
+    save();
+    refresh(true);
+  });
+
+  document.getElementById('btnCopy').addEventListener('click', function () {
+    var btn = this, txt = specText();
+    function done(ok) {
+      btn.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(function () { btn.textContent = 'Copy spec'; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () { done(true); }, function () { done(false); });
+    } else { done(false); }
+  });
+
+  /* ---------- 3D view ---------- */
+  var T = window.THREE;
+  var renderer3 = null, scene3 = null, camera3 = null, model3 = null, braseroGroup = null;
+  var MATS = null, popCur = 0, popTarget = 0, camDist = 5000, yaw = 0.7, pitch = 0.35;
+  var wrap3 = document.getElementById('threeWrap');
+
+  function mat(hex) { return new T.MeshLambertMaterial({ color: hex }); }
+  function box(w, h, d, m, x, y, z, parent) {
+    var mesh = new T.Mesh(new T.BoxGeometry(w, h, d), m);
+    mesh.position.set(x, y, z); parent.add(mesh); return mesh;
+  }
+  function cylX(r, len, m, x, y, z, parent) {
+    var mesh = new T.Mesh(new T.CylinderGeometry(r, r, len, 20), m);
+    mesh.rotation.z = Math.PI / 2;
+    mesh.position.set(x, y, z); parent.add(mesh); return mesh;
+  }
+
+  function build3() {
+    if (!scene3) return;
+    if (model3) {
+      scene3.remove(model3);
+      model3.traverse(function (o) { if (o.geometry) o.geometry.dispose(); });
+    }
+    model3 = new T.Group();
+    var s = state, W = s.overallW, D = s.overallD, H = s.overallH, t = 22;
+    /* firebox walls + floors */
+    var wallH = s.fireRim - s.hearthPan, wallY = (s.fireRim + s.hearthPan) / 2;
+    box(W, wallH, t, MATS.sage, 0, wallY, -D / 2 + t / 2, model3);
+    box(W, wallH, t, MATS.sage, 0, wallY, D / 2 - t / 2, model3);
+    box(t, wallH, D, MATS.sage, -W / 2 + t / 2, wallY, 0, model3);
+    box(t, wallH, D, MATS.sage, W / 2 - t / 2, wallY, 0, model3);
+    box(W - 2 * t, 30, D - 2 * t, MATS.brick, 0, s.fireFloor, 0, model3);
+    box(W, 44, D, MATS.sage, 0, s.hearthPan + 22, 0, model3);
+    /* gantry + rail + wheel */
+    var gh = H - s.fireRim;
+    box(36, gh, 36, MATS.steel, -W / 2 + 60, s.fireRim + gh / 2, 0, model3);
+    box(36, gh, 36, MATS.steel, W / 2 - 60, s.fireRim + gh / 2, 0, model3);
+    box(W - 84, 36, 36, MATS.steel, 0, H - 18, 0, model3);
+    cylX(9, W - 200, MATS.steelDark, 0, s.railH, 0, model3);
+    var wheel = new T.Mesh(new T.TorusGeometry(190, 16, 12, 32), MATS.ink);
+    wheel.rotation.y = Math.PI / 2;
+    wheel.position.set(W / 2 - 36, H - 170, 0);
+    model3.add(wheel);
+    cylX(10, 130, MATS.steelDark, W / 2 - 70, H - 170, 0, model3);
+    /* deck: two bays at mid travel */
+    var dy = (s.travelMin + s.travelMax) / 2;
+    var bw = Math.max(1, (s.deckW - s.centreRail) / 2);
+    var deckX = -W / 2 + 80 + s.braseroW + 140 + s.deckW / 2;
+    var deck = new T.Group();
+    deck.position.set(deckX, dy, 0);
+    box(s.deckW, 16, 24, MATS.steel, 0, 0, -s.deckD / 2 + 12, deck);
+    box(s.deckW, 16, 24, MATS.steel, 0, 0, s.deckD / 2 - 12, deck);
+    box(Math.max(14, s.centreRail), 26, s.deckD, MATS.ink, 0, 0, 0, deck);
+    for (var i = 0; i < 9; i++) {
+      box(bw / 18, 20, s.deckD - 44, MATS.steelDark, -s.deckW / 2 + bw * (i + 0.5) / 9, 0, 0, deck);
+    }
+    box(bw - 24, 14, s.deckD - 44, MATS.steel, s.deckW / 2 - bw / 2, 0, 0, deck);
+    model3.add(deck);
+    /* brasero: lift-out cage */
+    braseroGroup = new T.Group();
+    braseroGroup.position.set(-W / 2 + 80 + s.braseroW / 2, 0, 0);
+    var bh = s.braseroH, by = s.fireFloor + bh / 2;
+    box(12, bh, s.braseroD, MATS.steelDark, s.braseroW / 2 - 6, by, 0, braseroGroup);
+    for (var b = 0; b <= 6; b++) {
+      var bz = -s.braseroD / 2 + s.braseroD * b / 6;
+      box(10, bh, 10, MATS.steelDark, -s.braseroW / 2 + 5, by, bz, braseroGroup);
+    }
+    for (var b2 = 0; b2 <= 4; b2++) {
+      var bx2 = -s.braseroW / 2 + s.braseroW * b2 / 4;
+      box(10, bh, 10, MATS.steelDark, bx2, by, -s.braseroD / 2 + 5, braseroGroup);
+      box(10, bh, 10, MATS.steelDark, bx2, by, s.braseroD / 2 - 5, braseroGroup);
+    }
+    box(s.braseroW, 12, 12, MATS.steelDark, 0, s.fireFloor + bh - 6, -s.braseroD / 2 + 6, braseroGroup);
+    box(s.braseroW, 12, 12, MATS.steelDark, 0, s.fireFloor + bh - 6, s.braseroD / 2 - 6, braseroGroup);
+    model3.add(braseroGroup);
+    /* cart legs, bottom shelf, casters */
+    var lx = W / 2 - 60, lz = D / 2 - 60, legH = s.hearthPan - s.casterH;
+    [[-lx, -lz], [lx, -lz], [-lx, lz], [lx, lz]].forEach(function (p) {
+      box(30, legH, 30, MATS.ink, p[0], s.casterH + legH / 2, p[1], model3);
+      var wh = new T.Mesh(new T.CylinderGeometry(s.casterDia / 2, s.casterDia / 2, 36, 18), MATS.ink);
+      wh.rotation.z = Math.PI / 2;
+      wh.position.set(p[0], s.casterDia / 2, p[1]);
+      model3.add(wh);
+      box(26, Math.max(10, s.casterH - s.casterDia), 26, MATS.ink, p[0], (s.casterH + s.casterDia) / 2, p[1], model3);
+    });
+    var shW = W - 200, shD = D - 140;
+    box(shW, 14, 30, MATS.ink, 0, s.casterH + 84, -shD / 2 + 15, model3);
+    box(shW, 14, 30, MATS.ink, 0, s.casterH + 84, shD / 2 - 15, model3);
+    for (var si = 0; si < 9; si++) {
+      box(44, 16, shD, MATS.ink, -shW / 2 + shW * (si + 0.5) / 9, s.casterH + 96, 0, model3);
+    }
+    /* side bench, RH */
+    box(s.benchW, 16, s.benchD, MATS.steel, W / 2 + s.benchW / 2, s.fireRim + 8, 0, model3);
+    var brk = box(16, 320, 16, MATS.steelDark, W / 2 + 110, s.fireRim - 110, 0, model3);
+    brk.rotation.z = -0.75;
+    model3.position.y = -H / 2;
+    scene3.add(model3);
+    if (!build3.framed) { camDist = Math.max(W, H) * 1.9; build3.framed = true; }
+  }
+
+  function size3() {
+    if (!renderer3) return;
+    var w = wrap3.clientWidth, h = wrap3.clientHeight;
+    renderer3.setSize(w, h);
+    camera3.aspect = w / h;
+    camera3.updateProjectionMatrix();
+  }
+
+  function loop3() {
+    requestAnimationFrame(loop3);
+    popCur += (popTarget - popCur) * 0.12;
+    if (braseroGroup) {
+      var s = state;
+      braseroGroup.position.x = (-s.overallW / 2 + 80 + s.braseroW / 2) - (s.braseroW + 460) * popCur;
+      braseroGroup.position.y = 340 * popCur;
+    }
+    camera3.position.set(
+      Math.sin(yaw) * Math.cos(pitch) * camDist,
+      Math.sin(pitch) * camDist,
+      Math.cos(yaw) * Math.cos(pitch) * camDist
+    );
+    camera3.lookAt(0, 80, 0);
+    renderer3.render(scene3, camera3);
+  }
+
+  function init3() {
+    MATS = {
+      sage: mat(0x7c8468), ink: mat(0x2b2b27),
+      steel: mat(0xc4c8c9), steelDark: mat(0x9aa0a2), brick: mat(0xc9a27a)
+    };
+    renderer3 = new T.WebGLRenderer({ antialias: true, alpha: true });
+    renderer3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    wrap3.appendChild(renderer3.domElement);
+    scene3 = new T.Scene();
+    camera3 = new T.PerspectiveCamera(40, 1, 10, 40000);
+    scene3.add(new T.HemisphereLight(0xffffff, 0x55584a, 0.95));
+    var dl = new T.DirectionalLight(0xffffff, 0.65);
+    dl.position.set(2000, 3200, 2500);
+    scene3.add(dl);
+    build3();
+    size3();
+    window.addEventListener('resize', size3);
+    var cv = renderer3.domElement, dragging = false, px = 0, py = 0;
+    cv.style.cursor = 'grab';
+    cv.style.touchAction = 'none';
+    cv.addEventListener('pointerdown', function (e) {
+      dragging = true; px = e.clientX; py = e.clientY;
+      cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing';
+    });
+    cv.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      yaw += (e.clientX - px) * 0.008;
+      pitch = Math.max(0.02, Math.min(1.25, pitch + (e.clientY - py) * 0.005));
+      px = e.clientX; py = e.clientY;
+    });
+    cv.addEventListener('pointerup', function () { dragging = false; cv.style.cursor = 'grab'; });
+    cv.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      camDist = Math.max(1400, Math.min(16000, camDist * (1 + e.deltaY * 0.001)));
+    }, { passive: false });
+    document.getElementById('popBrasero').addEventListener('change', function () {
+      popTarget = this.checked ? 1 : 0;
+    });
+    loop3();
+  }
+
+  document.getElementById('costOut').addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.fcard') : null;
+    if (!btn) return;
+    COST.finish = btn.getAttribute('data-f');
+    var sel = document.getElementById('c_finish');
+    if (sel) sel.value = COST.finish;
+    renderCost();
+  });
+
+  buildRail();
+  refresh(false);
+  if (T) { init3(); } else { document.getElementById('threeMsg').hidden = false; }
+
+  /* downloads: claude sandbox capability, or plain-browser blob save */
+  function fallbackSave(filename, text) {
+    var blob = new Blob([text], { type: 'application/octet-stream' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+  var btnSvg = document.getElementById('btnSvg');
+  var btnJson = document.getElementById('btnJson');
+  btnSvg.hidden = false;
+  btnJson.hidden = false;
+  btnSvg.addEventListener('click', function () {
+    var svg = draw();
+    if (downloadsNs) {
+      downloadsNs.save({ filename: 'parrilla-plan.svg', data: svg })
+        .catch(function () { fallbackSave('parrilla-plan.svg', svg); });
+    } else { fallbackSave('parrilla-plan.svg', svg); }
+  });
+  btnJson.addEventListener('click', function () {
+    var js = JSON.stringify(state, null, 2);
+    if (downloadsNs) {
+      downloadsNs.save({ filename: 'parrilla-plan.json', data: js })
+        .catch(function () { fallbackSave('parrilla-plan.json', js); });
+    } else { fallbackSave('parrilla-plan.json', js); }
+  });
+  if (window.claude && window.claude.use) {
+    window.claude.use('downloads').then(function (dl) {
+      if (dl) downloadsNs = dl;
+    }).catch(function () {});
+  }
+})();
+</script>
